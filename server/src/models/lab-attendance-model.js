@@ -17,7 +17,7 @@ const labAttendanceSchema = new Schema(
     date: {
       type: Date,
       required: true,
-      // service nên normalize về 00:00
+    
     },
     checkInTime: Date,
     checkOutTime: Date,

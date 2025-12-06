@@ -1,13 +1,10 @@
 const errorHandler = require('../middlewares/error.handle');
-
+const labRouter = require('./lab.router');
 
 
 
 module.exports = (app) => {
-  // app.use('/api/accounts', accountRouter);
-  // app.use('/api/categories', categoryRouter);
-  // app.use('/api/products', productRouter);
+  app.use('api/labs', labRouter);
 
   app.use(errorHandler);
 };
-  

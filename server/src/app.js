@@ -21,11 +21,23 @@ app.use(
   })
 );
 app.use(cookieParser());
-app.use(cors());
+app.use(cors({origin: "http://localhost:5173"}));
 
 
 // init database
 require("./database/init.mongodb");
+
+
+
+// require("./models/student-model.js");
+// require("./models/user-model.js");
+// require("./models/lab-model.js");
+// require("./models/leave-request-model.js");
+// require("./models/notification-model.js");
+
+
+
+
 
 
 //init routes

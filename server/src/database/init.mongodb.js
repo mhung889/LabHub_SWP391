@@ -6,7 +6,9 @@ const connectString = `mongodb://${host}:${port}/${name}`;
 
 // const connectString = atlas;
 
-console.log(atlas);
+// console.log(atlas);
+
+console.log(connectString);
 
 class Database {
   constructor() {

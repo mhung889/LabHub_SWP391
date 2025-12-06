@@ -3,8 +3,6 @@ const verifyToken = require('../middlewares/verify-token-middleware');
 const asyncMiddleware = require('../middlewares/async.middleware');
 const roleMiddleware = require('../middlewares/role.middleware');
 
-const router = express.Router();
-
 const {
   login,
   createAccount,
@@ -15,6 +13,9 @@ const {
   refreshToken,
   exportExcelFileAccounts,
 } = require('../controllers/account.controller');
+
+const router = express.Router();
+
 
 router
   .route('/')

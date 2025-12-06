@@ -19,15 +19,6 @@ const labSchema = new Schema(
       type: String,
       trim: true,
     },
-  
-
-    //  1 lab có 1 mentor phụ trách
-    mentor: {
-      type: Schema.Types.ObjectId,
-      ref: 'User', // role = mentor
-    },
-
-    //  Khung giờ làm việc 
     startTime: {
       type: String, // '08:00'
       trim: true,
@@ -36,17 +27,24 @@ const labSchema = new Schema(
       type: String, // '17:00'
       trim: true,
     },
-
     total: {
-      type:Number,
+      type: Number,
       required: true,
-      default: 30
+      default: 30,
     },
-
     status: {
       type: String,
       enum: ['active', 'inactive'],
       default: 'active',
+    },
+    major: {
+      type: String,
+      trim: true, // "IT", "IB", "Marketing"
+    },
+    //  1 lab có 1 mentor phụ trách
+    mentor: {
+      type: Schema.Types.ObjectId,
+      ref: 'User', // role = mentor
     },
   },
   { timestamps: true, versionKey: false }
