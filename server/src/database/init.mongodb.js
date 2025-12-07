@@ -2,11 +2,12 @@ const mongoose = require("mongoose");
 
 const { db: { host, name, port }, atlas } = require('../config/config-mongodb');
 
-// const connectString = `mongodb://${host}:${port}/${name}`;
+// Sử dụng local MongoDB nếu atlas không được cấu hình hoặc là "LOI"
+const connectString = (atlas && atlas !== 'LOI') 
+  ? atlas 
+  : `mongodb://${host}:${port}/${name}`;
 
-const connectString = atlas;
-
-console.log(atlas);
+console.log('MongoDB Connection String:', connectString === atlas ? 'Using Atlas' : 'Using Local MongoDB');
 
 class Database {
   constructor() {
@@ -21,8 +22,16 @@ class Database {
 
     mongoose
       .connect(connectString)
-      .then((_) => console.log("Connected Mongodb success "))
-      .catch((err) => console.log("Error connect!"));
+      .then((_) => console.log("✅ Connected Mongodb success"))
+      .catch((err) => {
+        console.error("❌ Error connecting to MongoDB:");
+        console.error("   Connection String:", connectString);
+        console.error("   Error Message:", err.message);
+        if (atlas === 'LOI' || !atlas) {
+          console.error("   ⚠️  DEV_ATLAS không được cấu hình trong .env");
+          console.error("   💡 Đang thử kết nối với MongoDB local...");
+        }
+      });
   }
   static getInstance() {
     if (!Database.instance) {

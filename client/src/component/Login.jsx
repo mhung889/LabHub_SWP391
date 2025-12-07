@@ -1,12 +1,53 @@
 import React, { useState } from 'react';
-import { Container, Row, Col, Form, Button, InputGroup } from 'react-bootstrap';
+import { Container, Row, Col, Form, Button, InputGroup, Alert } from 'react-bootstrap';
+import { useNavigate } from 'react-router-dom';
+import { authAPI } from '../services/api';
 import './Login.css'; // Import file CSS ở trên
 
 const Login = () => {
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const togglePassword = () => {
     setShowPassword(!showPassword);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      const response = await authAPI.login(email, password);
+      
+      // Lưu token và thông tin user
+      localStorage.setItem('token', response.jwt);
+      localStorage.setItem('refreshToken', response.refreshToken);
+      localStorage.setItem('user', JSON.stringify({
+        _id: response._id,
+        email: response.email,
+        fullName: response.fullName,
+        role: response.role,
+      }));
+
+      // Điều hướng dựa trên role
+      if (response.role === 'admin') {
+        navigate('/admin/lab-management');
+      } else if (response.role === 'student') {
+        navigate('/student');
+      } else {
+        navigate('/');
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -27,8 +68,15 @@ const Login = () => {
               <p className="text-secondary m-0">Đăng nhập vào hệ thống quản lý của lab.</p>
             </div>
 
+            {/* Error Alert */}
+            {error && (
+              <Alert variant="danger" className="mb-3">
+                {error}
+              </Alert>
+            )}
+
             {/* Form */}
-            <Form className="d-flex flex-column gap-4">
+            <Form className="d-flex flex-column gap-4" onSubmit={handleSubmit}>
               {/* Email Field */}
               <Form.Group>
                 <Form.Label className="fw-medium text-dark">Email</Form.Label>
@@ -36,7 +84,11 @@ const Login = () => {
                   <span className="material-symbols-outlined input-group-text">mail</span>
                   <Form.Control 
                     type="email" 
-                    placeholder="Nhập email của bạn" 
+                    placeholder="Nhập email của bạn"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    disabled={loading}
                   />
                 </div>
               </Form.Group>
@@ -48,13 +100,18 @@ const Login = () => {
                   <span className="material-symbols-outlined input-group-text">lock</span>
                   <Form.Control 
                     type={showPassword ? "text" : "password"} 
-                    placeholder="Nhập mật khẩu của bạn" 
+                    placeholder="Nhập mật khẩu của bạn"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    disabled={loading}
                   />
                   <button 
                     type="button" 
                     className="btn-toggle pe-3" 
                     onClick={togglePassword}
                     aria-label="Toggle password visibility"
+                    disabled={loading}
                   >
                     <span className="material-symbols-outlined">
                       {showPassword ? 'visibility_off' : 'visibility'}
@@ -70,6 +127,9 @@ const Login = () => {
                   id="remember-me"
                   label="Ghi nhớ đăng nhập"
                   className="text-sm fw-medium"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  disabled={loading}
                 />
                 <a href="#" className="text-primary-custom text-decoration-underline fw-medium small">
                   Quên mật khẩu?
@@ -78,11 +138,13 @@ const Login = () => {
 
               {/* Submit Button */}
               <Button 
+                type="submit"
                 variant="primary" 
                 className="bg-primary-custom w-100 py-3 fw-medium"
                 style={{ height: '56px', borderRadius: '0.5rem' }}
+                disabled={loading}
               >
-                Đăng nhập
+                {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
               </Button>
             </Form>
 

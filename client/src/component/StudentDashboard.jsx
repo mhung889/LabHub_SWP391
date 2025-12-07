@@ -1,8 +1,67 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Button, ProgressBar } from 'react-bootstrap';
+import { useNavigate } from 'react-router-dom';
+import { authAPI } from '../services/api';
 import './StudentDashboard.css'; // Import file CSS tùy chỉnh ở trên
 
 const StudentDashboard = () => {
+  const navigate = useNavigate();
+  const [user, setUser] = useState(null);
+  const [student, setStudent] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        // Kiểm tra token
+        const token = localStorage.getItem('token');
+        if (!token) {
+          navigate('/login');
+          return;
+        }
+
+        // Lấy thông tin profile từ API
+        const response = await authAPI.getProfile();
+        setUser(response.user);
+        setStudent(response.student);
+        
+        // Cập nhật localStorage với thông tin đầy đủ
+        localStorage.setItem('user', JSON.stringify(response.user));
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+        // Nếu lỗi 401, redirect về login
+        if (error.response?.status === 401) {
+          authAPI.logout();
+          navigate('/login');
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, [navigate]);
+
+  const handleLogout = () => {
+    // Xóa thông tin authentication
+    authAPI.logout();
+    // Redirect về trang login
+    navigate('/login');
+  };
+
+  if (loading) {
+    return (
+      <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '100vh' }}>
+        <div className="text-center">
+          <div className="spinner-border text-primary-custom" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
+          <p className="mt-3 text-secondary">Đang tải thông tin...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="d-flex w-100 overflow-hidden">
       {/* --- Sidebar --- */}
@@ -15,37 +74,60 @@ const StudentDashboard = () => {
         <div className="mb-4">
           <div className="d-flex align-items-center gap-3 mb-4">
             <div 
-              className="avatar bg-light"
-              style={{ backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuArxMQmIBY4p4_EuU7Pyssour2k_tFMDJO71qRSl49w9pZEQocBU2z0KyIw792nQMudpZr1Wb0p2vkt4-nQgrucXWLsjUCvLjm804PG5F09aCNFizSCPrF4VVjrmalt8T-DPKWYrNW3XZ9A35_KFReJOhunhMNzBxxMEgmzraoo25-j1SZvCaEvML4eEM663KHVwzpbO7VawRAwcTl11aKtum8gzZAmPpku0XKOLvCH7gsiI8kdDyQWq2ERF1b_HAMdw5FmEAdgdQ")' }}
-            ></div>
+              className="avatar bg-light d-flex align-items-center justify-content-center"
+              style={{ 
+                backgroundImage: user?.image 
+                  ? `url("${user.image}")` 
+                  : 'none',
+                backgroundColor: user?.image ? 'transparent' : '#e2e8f0',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center'
+              }}
+            >
+              {!user?.image && (
+                <span className="material-symbols-outlined text-secondary" style={{ fontSize: '24px' }}>person</span>
+              )}
+            </div>
             <div>
-              <h1 className="h6 fw-bold mb-0 text-dark">Alex Johnson</h1>
-              <small className="text-secondary">MSSV: 12345</small>
+              <h1 className="h6 fw-bold mb-0 text-dark">{user?.fullName || 'Student'}</h1>
+              <small className="text-secondary">
+                {student?.studentCode ? `MSSV: ${student.studentCode}` : user?.email || ''}
+              </small>
             </div>
           </div>
 
           <nav className="d-flex flex-column gap-2">
-            <a href="#" className="nav-link-custom active">
+            <button 
+              onClick={() => navigate('/student')}
+              className="nav-link-custom active"
+            >
               <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>dashboard</span>
               Bảng điều khiển
-            </a>
-            <a href="#" className="nav-link-custom">
+            </button>
+            <button className="nav-link-custom">
               <span className="material-symbols-outlined">history</span>
               Lịch sử điểm danh
-            </a>
-            <a href="#" className="nav-link-custom">
+            </button>
+            <button 
+              onClick={() => navigate('/student/profile')}
+              className="nav-link-custom"
+            >
               <span className="material-symbols-outlined">person</span>
               Hồ sơ
-            </a>
+            </button>
           </nav>
         </div>
 
         <div className="mt-auto d-flex flex-column gap-3">
-          <a href="#" className="nav-link-custom">
+          <button className="nav-link-custom">
             <span className="material-symbols-outlined">settings</span>
             Cài đặt
-          </a>
-          <Button variant="light" className="w-100 fw-bold text-secondary py-2">
+          </button>
+          <Button 
+            variant="light" 
+            className="w-100 fw-bold text-secondary py-2"
+            onClick={handleLogout}
+          >
             Đăng xuất
           </Button>
         </div>
@@ -57,7 +139,7 @@ const StudentDashboard = () => {
           {/* Header */}
           <div className="mb-4 mb-lg-5">
             <h1 className="display-6 fw-bold text-dark mb-2">Bảng điều khiển điểm danh</h1>
-            <p className="text-secondary">Chào mừng trở lại, Alex! Đây là tóm tắt điểm danh của bạn.</p>
+            <p className="text-secondary">Chào mừng trở lại, {user?.fullName || 'Student'}! Đây là tóm tắt điểm danh của bạn.</p>
           </div>
 
           <Row className="g-4 mb-4">
