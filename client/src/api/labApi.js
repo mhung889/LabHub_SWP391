@@ -1,21 +1,34 @@
-import axiosInstance from "./axiosInstance"
+import axiosInstance from "./axiosInstance";
 
 const labApi = {
-  getLabs() {
-    return axiosInstance.get("/labs")
-  },
-  getLabDetail(id) {
-    return axiosInstance.get(`/labs/${id}`)
-  },
-  createLab(data) {
-    return axiosInstance.post("/labs", data)
-  },
-  updateLab(id, data) {
-    return axiosInstance.put(`/labs/${id}`, data)
-  },
-  deleteLab(id) {
-    return axiosInstance.delete(`/labs/${id}`)
-  }
-}
 
-export default labApi
+   // GET /labs?page=&limit=&search=&major=
+  getAll: (params) => axiosInstance.get("/labs", { params }),
+
+  // GET /labs/:id
+  getById: (id) => axiosInstance.get(`/labs/${id}`),
+
+  // POST /labs
+  create: (data) => axiosInstance.post("/labs", data),
+
+  // PUT /labs/:id
+  update: (id, data) => axiosInstance.put(`/labs/${id}`, data),
+
+  // DELETE /labs/:id
+  delete: (id) => axiosInstance.delete(`/labs/${id}`),
+
+  // GET /labs/:id/students
+  getStudentsByLabId: (id) => axiosInstance.get(`/labs/${id}/students`),
+
+  // POST /labs/:id/student
+  addStudentToLab: (id, data) =>
+    axiosInstance.post(`/labs/${id}/student`, data),
+
+  // DELETE /labs/:id/remove-student
+  removeStudentFromLab: (id, data) =>
+    axiosInstance.delete(`/labs/${id}/remove-student`, { data }),
+
+
+};
+
+export default labApi;

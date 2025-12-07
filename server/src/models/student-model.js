@@ -25,16 +25,15 @@ const studentSchema = new Schema(
       type:String,
       required: true
     },
-    // 1 student chọn 1 lab
     lab: {
       type: Schema.Types.ObjectId,
       ref: 'Lab',
     },
-    labStatus: {
-      type: String,
-      enum: ['none', 'pending', 'approved', 'rejected', 'inactive'],
-      default: 'none',
-    },
+    // labStatus: {
+    //   type: String,
+    //   enum: ['none', 'pending', 'approved', 'rejected', 'inactive'],
+    //   default: 'none',
+    // },
   },
   { timestamps: true, versionKey: false }
 );

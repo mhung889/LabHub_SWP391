@@ -8,6 +8,8 @@ module.exports = (app) => {
   app.use("/api/labs", labRouter);
   app.use("/api/students", studentRouter);
   app.use("/api/majors", majorRouter);
-  // error handler luôn đặt cuối
+
+
+  
   app.use(errorHandler);
 };

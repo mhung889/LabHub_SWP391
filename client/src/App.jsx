@@ -7,7 +7,7 @@ import NotFound from './pages/NotFound';
 
 import AdminLayout from "./pages/admin/AdminLayout"
 import AdminOverviewPage from "./pages/admin/AdminOverviewPage"
-import AdminLabsPage from "./pages/admin/AdminLabsPage"
+import AdminLabsPage from "./pages/admin/AdminLab/AdminLabsPage"
 import AdminMentorsPage from "./pages/admin/AdminMentorsPage"
 import AdminStudentsPage from "./pages/admin/AdminStudentsPage"
 

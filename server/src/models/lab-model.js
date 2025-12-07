@@ -38,16 +38,30 @@ const labSchema = new Schema(
       default: 'active',
     },
     major: {
-      type: String,
-      trim: true, // "IT", "IB", "Marketing"
+      type: Schema.Types.ObjectId,
+      ref: 'Major',
+      default: null,
     },
-    //  1 lab có 1 mentor phụ trách
     mentor: {
       type: Schema.Types.ObjectId,
       ref: 'User', // role = mentor
+      default: null,
     },
   },
-  { timestamps: true, versionKey: false }
+  {
+    timestamps: true,
+    versionKey: false,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+  }
 );
+
+// count student in lab
+labSchema.virtual('enrolled', {
+  ref: 'Student', // model Student
+  localField: '_id', // lab._id
+  foreignField: 'lab', // Student.lab
+  count: true, 
+});
 
 module.exports = mongoose.model('Lab', labSchema, 'Labs');

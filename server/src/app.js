@@ -4,12 +4,12 @@ const helmet = require("helmet");
 const compression = require("compression");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
-require("./database/init.mongodb");  // connect DB
+require("./database/init.mongodb"); 
 
 const app = express();
 
 // Middlewares
-// app.use(morgan("dev"));
+app.use(morgan("dev"));
 app.use(helmet());
 app.use(compression());
 app.use(express.json());

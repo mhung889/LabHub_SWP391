@@ -1,15 +1,364 @@
-const LabModel = require("../models/lab-model");
+const mongoose = require('mongoose');
+const LabModel = require('../models/lab-model');
+const StudentModel = require('../models/student-model');
+const MajorModel = require('../models/major-model');
 const ErrorResponse = require('../helpers/ErrorResponse');
 
+function generateLabCode(name) {
+  if (!name) return null;
 
+  const prefix = name
+    .trim()
+    .split(/\s+/)
+    .map((word) => word[0].toUpperCase())
+    .join('');
 
-module.exports = {
+  const random = Math.floor(100 + Math.random() * 900);
 
-  createLab: async (req,res) => {
-  
-  },
-
-
-
-
+  return `${prefix}-${random}`;
 }
+
+exports.createLab = async (req, res) => {
+  try {
+    const {
+      name,
+      description,
+      startTime,
+      endTime,
+      total,
+      status,
+      major,
+      mentor,
+    } = req.body;
+
+    if (!name) {
+      return res.status(400).json({
+        message: 'Name is required',
+      });
+    }
+
+    let code = generateLabCode(name);
+
+    let existed = await LabModel.findOne({ code });
+    while (existed) {
+      code = generateLabCode(name);
+      existed = await LabModel.findOne({ code });
+    }
+
+    const payload = {
+      name: name.trim(),
+      code,
+      description,
+      startTime,
+      endTime,
+      total,
+      status,
+    };
+
+    if (major) {
+      payload.major = major;
+    }
+
+    if (mentor) {
+      payload.mentor = mentor;
+    }
+
+    const newLab = await LabModel.create(payload);
+
+    return res.status(201).json({
+      data: newLab,
+      message: 'Tạo lab thành công',
+    });
+  } catch (error) {
+    console.error('Create lab error:', error);
+    return res.status(500).json({
+      message: 'Internal server error',
+    });
+  }
+};
+
+exports.editLab = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const {
+      name,
+      description,
+      startTime,
+      endTime,
+      total,
+      status,
+      major,
+      mentor,
+      // code,
+    } = req.body;
+
+    const lab = await LabModel.findById(id);
+    if (!lab) {
+      return res.status(404).json({
+        message: 'Lab không tồn tại',
+      });
+    }
+
+    if (name !== undefined) lab.name = name;
+    if (description !== undefined) lab.description = description;
+    if (startTime !== undefined) lab.startTime = startTime;
+    if (endTime !== undefined) lab.endTime = endTime;
+    if (total !== undefined) lab.total = total;
+    if (status !== undefined) lab.status = status;
+    if (major !== undefined) lab.major = major;
+    if (mentor !== undefined) lab.mentor = mentor;
+
+    // Nếu cho phép sửa code thì nhớ check trùng
+    // if (code !== undefined) {
+    //   const existed = await Lab.findOne({ code, _id: { $ne: id } });
+    //   if (existed) {
+    //     return res.status(400).json({ message: 'Lab code đã tồn tại' });
+    //   }
+    //   lab.code = code;
+    // }
+
+    const updatedLab = await lab.save();
+
+    return res.status(200).json({
+      data: updatedLab,
+      message: 'Cập nhật lab thành công',
+    });
+  } catch (error) {
+    console.error('Edit lab error:', error);
+    return res.status(500).json({
+      message: 'Internal server error',
+    });
+  }
+};
+
+exports.deleteLabById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const lab = await LabModel.findById(id);
+    if (!lab) {
+      return res.status(404).json({
+        message: 'Lab không tồn tại',
+      });
+    }
+
+    if (!lab) {
+      return res.status(404).json({
+        message: 'Lab không tồn tại',
+      });
+    }
+
+    const studentCount = await StudentModel.countDocuments({ lab: id });
+    if (studentCount > 0) {
+      return res.status(400).json({
+        message: `Không thể xóa lab vì còn ${studentCount} sinh viên đang thuộc lab này.`,
+      });
+    }
+
+    if (lab.mentor) {
+      return res.status(400).json({
+        message: 'Không thể xóa lab vì vẫn còn mentor đang phụ trách.',
+      });
+    }
+
+    const deletedLab = await LabModel.findByIdAndDelete(id);
+
+    return res.status(200).json({
+      data: deletedLab,
+      message: 'Xóa lab thành công',
+    });
+  } catch (error) {
+    console.error('Delete lab error:', error);
+    return res.status(500).json({
+      message: 'Internal server error',
+    });
+  }
+};
+
+exports.addStudentToLabById = async (req, res) => {
+  try {
+    const { id } = req.params; //labId
+    const { studentId } = req.body;
+
+    const lab = await LabModel.findById(id);
+    if (!lab) return res.status(404).json({ message: 'Lab không tồn tại' });
+
+    const student = await StudentModel.findById(studentId);
+    if (!student) {
+      return res.status(404).json({ message: 'Student không tồn tại' });
+    }
+
+    if (
+      lab.major &&
+      student.major &&
+      lab.major.toString() !== student.major.toString()
+    ) {
+      return res.status(400).json({
+        message: 'Major student không khớp với major lab',
+      });
+    }
+
+    const count = await StudentModel.countDocuments({ lab: id });
+    if (count >= lab.total) {
+      return res.status(400).json({ message: 'Lab đã đủ số lượng' });
+    }
+
+    if (student.lab) {
+      return res.status(400).json({ message: 'Student đã có lab khác' });
+    }
+
+    student.lab = id;
+    await student.save();
+
+    return res.status(200).json({
+      data: student,
+      message: 'Thêm student vào lab thành công',
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+exports.getStudentsByLabId = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const lab = await LabModel.findOne({ _id: id });
+
+    if (!lab) {
+      return res.status(404).json({
+        message: 'Lab không tồn tại',
+      });
+    }
+    const students = await StudentModel.find({ lab: id })
+      .populate('user', '')
+      .populate('major', 'name code -_id')
+      .populate('lab', '');
+
+    return res.status(200).json(students);
+  } catch (error) {
+    console.error('Delete lab error:', error);
+    return res.status(500).json({
+      message: 'Internal server error',
+    });
+  }
+};
+
+exports.removeStudentFromLab = async (req, res) => {
+  try {
+    const { id } = req.params; //labId
+    const { studentId } = req.body;
+
+    if (!studentId) {
+      return res.status(400).json({
+        message: 'studentId là bắt buộc',
+      });
+    }
+
+    const lab = await LabModel.findOne({ _id: id });
+
+    if (!lab) {
+      return res.status(404).json({
+        message: 'Lab không tồn tại',
+      });
+    }
+
+    const student = await StudentModel.findById(studentId);
+    if (!student) {
+      return res.status(404).json({
+        message: 'Student không tồn tại',
+      });
+    }
+
+    if (!student.lab || student.lab.toString() !== id.toString()) {
+      return res.status(400).json({
+        message: 'Student không thuộc lab này',
+      });
+    }
+
+    student.lab = null;
+    await student.save();
+
+    return res.status(200).json({
+      data: student,
+      message: 'Xóa student khỏi lab thành công',
+    });
+  } catch (error) {
+    console.error('Delete lab error:', error);
+    return res.status(500).json({
+      message: 'Internal server error',
+    });
+  }
+};
+
+exports.getLabById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const lab = await LabModel.findOne({ _id: id });
+
+    if (!lab) {
+      return res.status(404).json({
+        message: 'Lab không tồn tại',
+      });
+    }
+
+    return res.status(200).json(lab);
+  } catch (error) {
+    console.error('Delete lab error:', error);
+    return res.status(500).json({
+      message: 'Internal server error',
+    });
+  }
+};
+
+exports.getLabAll = async (req, res) => {
+  try {
+    let { page = 1, limit = 3, search = '', major } = req.query;
+
+    page = Number(page) || 1;
+    limit = Number(limit) || 3;
+
+    const filter = {};
+
+    if (major && mongoose.Types.ObjectId.isValid(major)) {
+      filter.major = major;
+    }
+
+    if (search) {
+      const regex = new RegExp(search, 'i');
+      filter.$or = [{ name: regex }, { code: regex }, { description: regex }];
+    }
+
+    const skip = (page - 1) * limit;
+
+    const [labs, total] = await Promise.all([
+      LabModel.find(filter)
+        .populate('major', 'code name')
+        .populate('enrolled')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      LabModel.countDocuments(filter),
+    ]);
+
+    const totalPages = Math.ceil(total / limit) || 1;
+
+    return res.status(200).json({
+      data: labs,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages,
+      },
+    });
+  } catch (error) {
+    console.error('Get labs error:', error);
+    return res.status(500).json({
+      message: 'Internal server error',
+    });
+  }
+};
