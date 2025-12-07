@@ -1,10 +1,13 @@
-const errorHandler = require('../middlewares/error.handle');
-const labRouter = require('./lab.router');
-
-
+const errorHandler = require("../middlewares/error.handle");
+const labRouter = require("./lab.router");
+const studentRouter = require("./student.router");
+const majorRouter = require("./major.router");
 
 module.exports = (app) => {
-  app.use('api/labs', labRouter);
-
+  // mount routes
+  app.use("/api/labs", labRouter);
+  app.use("/api/students", studentRouter);
+  app.use("/api/majors", majorRouter);
+  // error handler luôn đặt cuối
   app.use(errorHandler);
 };

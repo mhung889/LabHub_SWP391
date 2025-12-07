@@ -16,10 +16,11 @@ const studentSchema = new Schema(
       unique: true,
       trim: true,
     },
-    major: {
-      type: String,
-      trim: true,
+    major: { 
+      type: mongoose.Schema.Types.ObjectId, 
+      ref: "Major" 
     },
+
     startDate: {
       type:String,
       required: true
