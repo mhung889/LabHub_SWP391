@@ -1,0 +1,147 @@
+/* StudentProfile.css */
+body {
+  font-family: 'Lexend', sans-serif;
+  background-color: #f6f7f8;
+  color: #1e293b; /* slate-800 */
+}
+
+/* --- Utilities --- */
+.text-primary-custom {
+  color: #2b8cee !important;
+}
+
+.bg-primary-custom {
+  background-color: #2b8cee !important;
+  border-color: #2b8cee !important;
+}
+
+.bg-primary-custom:hover {
+  background-color: #2579ce !important;
+  border-color: #2579ce !important;
+}
+
+.bg-primary-light {
+  background-color: rgba(43, 140, 238, 0.2);
+}
+
+.border-custom {
+  border-color: #e2e8f0 !important; /* slate-200 */
+}
+
+/* --- Layout --- */
+.app-container {
+  min-height: 100vh;
+  display: flex;
+}
+
+/* --- Sidebar --- */
+.sidebar {
+  width: 260px;
+  background-color: white;
+  border-right: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  flex-shrink: 0;
+}
+
+.nav-item-custom {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  color: #334155; /* slate-700 */
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.875rem;
+  transition: background-color 0.2s;
+  margin-bottom: 0.5rem;
+}
+
+.nav-item-custom:hover {
+  background-color: #f1f5f9; /* slate-100 */
+  color: #0f172a;
+}
+
+.nav-item-custom.active {
+  background-color: rgba(43, 140, 238, 0.2);
+  color: #2b8cee; /* primary */
+}
+
+/* --- Main Content --- */
+.main-content {
+  flex: 1;
+  padding: 2rem;
+}
+
+/* --- Profile Header Card --- */
+.profile-card {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem; /* rounded-xl */
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.avatar-large {
+  width: 128px;
+  height: 128px;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+  flex-shrink: 0;
+}
+
+/* --- Tabs --- */
+.custom-tabs {
+  display: flex;
+  gap: 2rem;
+  padding: 0 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.tab-link {
+  padding: 1rem 0;
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #64748b; /* slate-500 */
+  border-bottom: 3px solid transparent;
+}
+
+.tab-link:hover {
+  color: #334155;
+  border-bottom-color: #cbd5e1;
+}
+
+.tab-link.active {
+  color: #1e293b;
+  border-bottom-color: #2b8cee;
+  color: #0f172a;
+}
+
+/* --- Details Grid --- */
+.detail-item {
+  padding: 1rem 0;
+  border-top: 1px solid #e2e8f0;
+}
+
+.detail-label {
+  font-size: 0.875rem;
+  color: #64748b; /* slate-500 */
+  margin-bottom: 0.25rem;
+}
+
+.detail-value {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #1e293b; /* slate-800 */
+  margin: 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 992px) {
+  .sidebar {
+    display: none; /* Ẩn sidebar trên mobile cho đơn giản, hoặc dùng Offcanvas */
+  }
+}

@@ -1,0 +1,98 @@
+[
+  {
+    "fullName": "Nguyễn Văn Admin",
+    "email": "admin@labhub.com",
+    "passwordHash": "$2a$10$rK8X8X8X8X8X8X8X8X8X8u8X8X8X8X8X8X8X8X8X8X8X8X8X8X8X8",
+    "role": "admin",
+    "status": "active",
+    "dateOfBirth": "1990-01-15T00:00:00.000Z",
+    "gender": "male",
+    "address": "123 Đường ABC, Quận 1, TP.HCM",
+    "phoneNumber": "0901234567",
+    "image": "https://res.cloudinary.com/dyz2xtks9/image/upload/v1741075645/Human%20Management/images/user_default_1741075643141.jpg",
+    "emergencyContact": {
+      "name": "Nguyễn Thị Admin",
+      "relationship": "Vợ",
+      "phoneNumber": "0901234568"
+    },
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "updatedAt": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "fullName": "Trần Thị Mentor",
+    "email": "mentor1@labhub.com",
+    "passwordHash": "$2a$10$rK8X8X8X8X8X8X8X8X8X8u8X8X8X8X8X8X8X8X8X8X8X8X8X8X8X",
+    "role": "mentor",
+    "status": "active",
+    "dateOfBirth": "1985-05-20T00:00:00.000Z",
+    "gender": "female",
+    "address": "456 Đường XYZ, Quận 3, TP.HCM",
+    "phoneNumber": "0912345678",
+    "image": "https://res.cloudinary.com/dyz2xtks9/image/upload/v1741075645/Human%20Management/images/user_default_1741075643141.jpg",
+    "emergencyContact": {
+      "name": "Trần Văn Mentor",
+      "relationship": "Chồng",
+      "phoneNumber": "0912345679"
+    },
+    "createdAt": "2024-01-02T00:00:00.000Z",
+    "updatedAt": "2024-01-02T00:00:00.000Z"
+  },
+  {
+    "fullName": "Lê Văn Mentor",
+    "email": "mentor2@labhub.com",
+    "passwordHash": "$2a$10$rK8X8X8X8X8X8X8X8X8X8u8X8X8X8X8X8X8X8X8X8X8X8X8X8X8X",
+    "role": "mentor",
+    "status": "active",
+    "dateOfBirth": "1988-08-10T00:00:00.000Z",
+    "gender": "male",
+    "address": "789 Đường DEF, Quận 5, TP.HCM",
+    "phoneNumber": "0923456789",
+    "image": "https://res.cloudinary.com/dyz2xtks9/image/upload/v1741075645/Human%20Management/images/user_default_1741075643141.jpg",
+    "emergencyContact": {
+      "name": "Lê Thị Mentor",
+      "relationship": "Vợ",
+      "phoneNumber": "0923456790"
+    },
+    "createdAt": "2024-01-03T00:00:00.000Z",
+    "updatedAt": "2024-01-03T00:00:00.000Z"
+  },
+  {
+    "fullName": "Phạm Thị Student",
+    "email": "student1@labhub.com",
+    "passwordHash": "$2a$10$rK8X8X8X8X8X8X8X8X8X8u8X8X8X8X8X8X8X8X8X8X8X8X8X8X8X",
+    "role": "student",
+    "status": "active",
+    "dateOfBirth": "2000-03-25T00:00:00.000Z",
+    "gender": "female",
+    "address": "321 Đường GHI, Quận 7, TP.HCM",
+    "phoneNumber": "0934567890",
+    "image": "https://res.cloudinary.com/dyz2xtks9/image/upload/v1741075645/Human%20Management/images/user_default_1741075643141.jpg",
+    "emergencyContact": {
+      "name": "Phạm Văn Student",
+      "relationship": "Bố",
+      "phoneNumber": "0934567891"
+    },
+    "createdAt": "2024-01-04T00:00:00.000Z",
+    "updatedAt": "2024-01-04T00:00:00.000Z"
+  },
+  {
+    "fullName": "Hoàng Văn Student",
+    "email": "student2@labhub.com",
+    "passwordHash": "$2a$10$rK8X8X8X8X8X8X8X8X8X8u8X8X8X8X8X8X8X8X8X8X8X8X8X8X8X",
+    "role": "student",
+    "status": "active",
+    "dateOfBirth": "2001-07-12T00:00:00.000Z",
+    "gender": "male",
+    "address": "654 Đường JKL, Quận 10, TP.HCM",
+    "phoneNumber": "0945678901",
+    "image": "https://res.cloudinary.com/dyz2xtks9/image/upload/v1741075645/Human%20Management/images/user_default_1741075643141.jpg",
+    "emergencyContact": {
+      "name": "Hoàng Thị Student",
+      "relationship": "Mẹ",
+      "phoneNumber": "0945678902"
+    },
+    "createdAt": "2024-01-05T00:00:00.000Z",
+    "updatedAt": "2024-01-05T00:00:00.000Z"
+  }
+]
+
