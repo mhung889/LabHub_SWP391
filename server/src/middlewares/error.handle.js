@@ -1,5 +1,12 @@
 module.exports = (err, req, res, next) => {
+  console.error('Error:', err); // Log error for debugging
   let error = { ...err };
+
+  // Handle multer errors
+  if (err.name === 'MulterError') {
+    error.statusCode = 400;
+    error.message = 'File upload error: ' + err.message;
+  }
 
   if (err?.name === 'CastError') {
     error.statusCode = 404;

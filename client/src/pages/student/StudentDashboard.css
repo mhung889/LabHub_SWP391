@@ -1,0 +1,94 @@
+/* StudentDashboard.css */
+body {
+  font-family: 'Lexend', sans-serif;
+  background-color: #f6f7f8;
+}
+
+/* Custom Primary Color */
+.text-primary-custom {
+  color: #2b8cee !important;
+}
+
+.bg-primary-custom {
+  background-color: #2b8cee !important;
+  border-color: #2b8cee !important;
+}
+
+.bg-primary-light {
+  background-color: rgba(43, 140, 238, 0.1);
+  color: #2b8cee;
+}
+
+/* Sidebar Styling */
+.sidebar-wrapper {
+  width: 280px;
+  min-height: 100vh;
+  background-color: white;
+  border-right: 1px solid #e2e8f0;
+}
+
+.nav-link-custom {
+  color: #475569;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.nav-link-custom:hover {
+  background-color: #f1f5f9;
+  color: #1e293b;
+}
+
+.nav-link-custom.active {
+  background-color: rgba(43, 140, 238, 0.1);
+  color: #2b8cee;
+}
+
+/* Icons */
+.material-symbols-outlined {
+  font-size: 24px;
+}
+
+.icon-box {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+}
+
+/* Cards */
+.custom-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  background: white;
+  height: 100%;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+}
+
+.main-btn {
+  height: 56px;
+  border-radius: 0.75rem;
+  font-weight: 700;
+  font-size: 1.125rem;
+  box-shadow: 0 10px 15px -3px rgba(43, 140, 238, 0.3);
+}
+
+.main-btn:hover {
+  box-shadow: 0 10px 15px -3px rgba(43, 140, 238, 0.5);
+  background-color: #1a7bd6 !important;
+}
