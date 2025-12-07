@@ -29,6 +29,13 @@ const userSchema = new Schema(
       enum: ['active', 'inactive'],
       default: 'active',
     },
+    phoneNumber: {
+      type: String,
+      trim: true,
+    },
+    image: {
+      type: String,
+    },
   },
   { timestamps: true, versionKey: false }
 );

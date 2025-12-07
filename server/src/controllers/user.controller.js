@@ -104,7 +104,11 @@ module.exports = {
   },
   getProfile: async (req, res) => {
     try {
-      const userId = req.user._id; // Lấy từ middleware verify token
+      // Đảm bảo userId là đúng format - lấy từ req.user (Mongoose document)
+      const userId = req.user._id;
+      console.log('getProfile - req.user._id:', userId);
+      console.log('getProfile - req.user._id type:', typeof userId);
+      console.log('getProfile - req.user._id constructor:', userId?.constructor?.name);
 
       // Lấy user với tất cả fields (kể cả phoneNumber và image nếu có trong DB)
       const user = await UserModel.findById(userId).lean();
@@ -133,16 +137,80 @@ module.exports = {
       let studentProfile = null;
       if (user.role === 'student') {
         try {
-          // Tìm student bằng user ID
-          studentProfile = await StudentModel.findOne({ user: userId })
-            .populate({
-              path: 'lab',
-              select: 'name code',
-              options: { lean: true }
-            })
-            .lean();
+          console.log('=== getProfile Student Query ===');
+          console.log('userId:', userId);
+          console.log('userId.toString():', userId?.toString());
+          console.log('userId.constructor.name:', userId?.constructor?.name);
           
-          if (studentProfile) {
+          // Thử query với nhiều cách
+          let student = null;
+          
+          // Cách 1: Query trực tiếp (giống updateProfile)
+          student = await StudentModel.findOne({ user: userId });
+          console.log('Query 1 (direct):', student ? 'FOUND' : 'NOT FOUND');
+          
+          // Cách 2: Query với string
+          if (!student) {
+            student = await StudentModel.findOne({ user: userId.toString() });
+            console.log('Query 2 (string):', student ? 'FOUND' : 'NOT FOUND');
+          }
+          
+          // Cách 3: Query với ObjectId
+          if (!student) {
+            const mongoose = require('mongoose');
+            if (mongoose.Types.ObjectId.isValid(userId)) {
+              const userObjId = typeof userId === 'string' 
+                ? new mongoose.Types.ObjectId(userId) 
+                : userId;
+              student = await StudentModel.findOne({ user: userObjId });
+              console.log('Query 3 (ObjectId):', student ? 'FOUND' : 'NOT FOUND');
+            }
+          }
+          
+          // Cách 4: Query tất cả và tìm
+          if (!student) {
+            const allStudents = await StudentModel.find({}).limit(10);
+            console.log('Total students checked:', allStudents.length);
+            for (const s of allStudents) {
+              const sUserId = s.user?.toString();
+              const reqUserId = userId?.toString();
+              console.log(`Comparing: ${sUserId} === ${reqUserId}?`, sUserId === reqUserId);
+              if (sUserId === reqUserId) {
+                student = s;
+                console.log('FOUND by manual comparison!');
+                break;
+              }
+            }
+          }
+          
+          if (student) {
+            console.log('✅ Student FOUND:', {
+              _id: student._id,
+              studentCode: student.studentCode,
+              user: student.user?.toString()
+            });
+            
+            // Convert sang lean trước, KHÔNG populate lab ở đây (sẽ populate sau để tránh lỗi MissingSchemaError)
+            studentProfile = await StudentModel.findById(student._id).lean();
+            
+            // Populate lab ngay sau khi có studentProfile (trước khi populate major)
+            if (studentProfile && studentProfile.lab) {
+              try {
+                const LabModel = require('../models/lab-model');
+                const lab = await LabModel.findById(studentProfile.lab).select('name code').lean();
+                if (lab) {
+                  studentProfile.lab = {
+                    _id: lab._id.toString(),
+                    name: lab.name,
+                    code: lab.code
+                  };
+                }
+              } catch (labErr) {
+                console.log('Lab populate error (non-critical):', labErr.message);
+                // Giữ nguyên lab là ObjectId nếu không populate được
+              }
+            }
+            
             // Nếu major là ObjectId, populate từ Major collection
             if (studentProfile.major) {
               try {
@@ -166,13 +234,20 @@ module.exports = {
                         code: major.code,
                         description: major.description
                       };
+                      console.log('Major populated:', studentProfile.major);
+                    } else {
+                      console.log('Major not found in collection for ID:', majorObjectId);
                     }
                   }
+                } else {
+                  console.log('Major is not a valid ObjectId, keeping as string:', majorId);
                 }
               } catch (err) {
-                console.log('Major populate error:', err.message);
+                console.error('Major populate error:', err.message);
                 // Nếu lỗi, giữ nguyên giá trị major
               }
+            } else {
+              console.log('No major field in student profile');
             }
 
             // Nếu student có phoneNumber hoặc image nhưng user không có, lấy từ student
@@ -190,13 +265,16 @@ module.exports = {
         }
       }
 
-      // Convert ObjectId to string để tránh lỗi serialize
+      // Lab đã được populate ở trên, không cần populate lại
+
+      // Convert ObjectId to string để tránh lỗi serialize - đảm bảo tất cả fields được trả về
       const response = {
         user: {
           ...userData,
           _id: userData._id.toString()
         },
         student: studentProfile ? {
+          // Trả về tất cả fields của student - giống hệt như updateProfile
           ...studentProfile,
           _id: studentProfile._id.toString(),
           user: studentProfile.user ? studentProfile.user.toString() : null,
@@ -207,6 +285,9 @@ module.exports = {
           } : studentProfile.lab.toString()) : null
         } : null
       };
+
+      // Log để debug
+      console.log('getProfile response:', JSON.stringify(response, null, 2));
 
       return res.status(200).json(response);
     } catch (error) {
@@ -219,6 +300,11 @@ module.exports = {
       const userId = req.user._id;
       const updateData = req.body;
 
+      console.log('=== updateProfile DEBUG ===');
+      console.log('updateData:', updateData);
+      console.log('updateData.phoneNumber:', updateData.phoneNumber);
+      console.log('updateData.phoneNumber type:', typeof updateData.phoneNumber);
+
       // Lấy user hiện tại
       const user = await UserModel.findById(userId);
       if (!user) {
@@ -227,18 +313,27 @@ module.exports = {
 
       // Cập nhật thông tin User
       const userUpdateFields = {};
-      if (updateData.fullName !== undefined && updateData.fullName !== null) {
+      if (updateData.fullName !== undefined && updateData.fullName !== null && updateData.fullName.trim() !== '') {
         userUpdateFields.fullName = updateData.fullName.trim();
       }
-      if (updateData.phoneNumber !== undefined && updateData.phoneNumber !== null) {
-        userUpdateFields.phoneNumber = updateData.phoneNumber.trim();
+      if (updateData.phoneNumber !== undefined) {
+        // Cập nhật phoneNumber - luôn update kể cả là empty string
+        const phoneValue = typeof updateData.phoneNumber === 'string' 
+          ? updateData.phoneNumber.trim() 
+          : updateData.phoneNumber;
+        userUpdateFields.phoneNumber = phoneValue || null;
+        console.log('Updating User phoneNumber:', phoneValue);
       }
       if (updateData.image !== undefined && updateData.image !== null) {
         userUpdateFields.image = updateData.image;
       }
 
+      console.log('User update fields:', userUpdateFields);
       if (Object.keys(userUpdateFields).length > 0) {
         await UserModel.findByIdAndUpdate(userId, userUpdateFields, { new: true, runValidators: true });
+        console.log('User updated successfully');
+      } else {
+        console.log('No user fields to update');
       }
 
       // Nếu là student, cập nhật thông tin Student
@@ -249,8 +344,13 @@ module.exports = {
           
           if (student) {
             const studentUpdateFields = {};
-            if (updateData.phoneNumber !== undefined && updateData.phoneNumber !== null) {
-              studentUpdateFields.phoneNumber = updateData.phoneNumber.trim();
+            if (updateData.phoneNumber !== undefined) {
+              // Cập nhật phoneNumber - luôn update kể cả là empty string
+              const phoneValue = typeof updateData.phoneNumber === 'string' 
+                ? updateData.phoneNumber.trim() 
+                : updateData.phoneNumber;
+              studentUpdateFields.phoneNumber = phoneValue || null;
+              console.log('Updating Student phoneNumber:', phoneValue);
             }
             if (updateData.image !== undefined && updateData.image !== null) {
               studentUpdateFields.image = updateData.image;

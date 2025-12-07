@@ -118,8 +118,9 @@ const StudentProfile = () => {
       if (formData.fullName && formData.fullName.trim()) {
         updateData.fullName = formData.fullName.trim();
       }
+      // Luôn gửi phoneNumber nếu có trong formData (kể cả empty string)
       if (formData.phoneNumber !== undefined) {
-        updateData.phoneNumber = formData.phoneNumber.trim() || null;
+        updateData.phoneNumber = formData.phoneNumber.trim();
       }
       if (formData.address !== undefined) {
         updateData.address = formData.address.trim() || null;
@@ -596,68 +597,44 @@ const StudentProfile = () => {
                           <Col md={6}>
                             <div className="info-item">
                               <label className="info-label">Mã số sinh viên</label>
-                              <p className="info-value">{student?.studentCode || 'Chưa cập nhật'}</p>
+                              <p className="info-value">
+                                {student?.studentCode ? student.studentCode : 'Chưa cập nhật'}
+                              </p>
                             </div>
                           </Col>
-                          {student?.dateOfBirth && (
-                            <Col md={6}>
-                              <div className="info-item">
-                                <label className="info-label">Ngày sinh</label>
-                                <p className="info-value">{formatDate(student.dateOfBirth)}</p>
-                              </div>
-                            </Col>
-                          )}
-                          {student?.gender && (
-                            <Col md={6}>
-                              <div className="info-item">
-                                <label className="info-label">Giới tính</label>
-                                <p className="info-value">
-                                  {student.gender === 'male' ? 'Nam' : student.gender === 'female' ? 'Nữ' : 'Khác'}
-                                </p>
-                              </div>
-                            </Col>
-                          )}
-                          {student?.className && (
-                            <Col md={6}>
-                              <div className="info-item">
-                                <label className="info-label">Lớp</label>
-                                <p className="info-value">{student.className}</p>
-                              </div>
-                            </Col>
-                          )}
-                          {student?.major && (
-                            <Col md={6}>
-                              <div className="info-item">
-                                <label className="info-label">Chuyên ngành</label>
-                                <p className="info-value">
-                                  {typeof student.major === 'object' && student.major.name 
-                                    ? student.major.name 
-                                    : typeof student.major === 'string' 
-                                      ? student.major 
-                                      : 'Chưa cập nhật'}
-                                </p>
-                                {typeof student.major === 'object' && student.major.description && (
-                                  <small className="text-secondary d-block mt-1">{student.major.description}</small>
-                                )}
-                              </div>
-                            </Col>
-                          )}
-                          {student?.startDate && (
-                            <Col md={6}>
-                              <div className="info-item">
-                                <label className="info-label">Ngày bắt đầu</label>
-                                <p className="info-value">{formatDate(student.startDate)}</p>
-                              </div>
-                            </Col>
-                          )}
-                          {student?.address && (
-                            <Col md={12}>
-                              <div className="info-item">
-                                <label className="info-label">Địa chỉ</label>
-                                <p className="info-value">{student.address}</p>
-                              </div>
-                            </Col>
-                          )}
+                          <Col md={6}>
+                            <div className="info-item">
+                              <label className="info-label">Chuyên ngành</label>
+                              <p className="info-value">
+                                {student?.major 
+                                  ? (typeof student.major === 'object' && student.major?.name 
+                                      ? student.major.name 
+                                      : typeof student.major === 'string' && student.major
+                                        ? student.major 
+                                        : 'Chưa cập nhật')
+                                  : 'Chưa cập nhật'}
+                              </p>
+                              {student?.major && typeof student.major === 'object' && student.major?.description && (
+                                <small className="text-secondary d-block mt-1">{student.major.description}</small>
+                              )}
+                            </div>
+                          </Col>
+                          <Col md={6}>
+                            <div className="info-item">
+                              <label className="info-label">Ngày bắt đầu</label>
+                              <p className="info-value">
+                                {student?.startDate ? formatDate(student.startDate) : 'Chưa cập nhật'}
+                              </p>
+                            </div>
+                          </Col>
+                          <Col md={12}>
+                            <div className="info-item">
+                              <label className="info-label">Địa chỉ</label>
+                              <p className="info-value">
+                                {student?.address ? student.address : 'Chưa cập nhật'}
+                              </p>
+                            </div>
+                          </Col>
                         </Row>
                       )}
                     </Card.Body>
