@@ -1,0 +1,68 @@
+[
+  {
+    "name": "Phòng Lab Công Nghệ Thông Tin 1",
+    "code": "LAB-IT-001",
+    "description": "Phòng lab chuyên về lập trình và phát triển phần mềm",
+    "startTime": "08:00",
+    "endTime": "17:00",
+    "total": 30,
+    "status": "active",
+    "major": "IT",
+    "mentor": null,
+    "createdAt": "2024-01-10T00:00:00.000Z",
+    "updatedAt": "2024-01-10T00:00:00.000Z"
+  },
+  {
+    "name": "Phòng Lab Kinh Doanh Quốc Tế",
+    "code": "LAB-IB-002",
+    "description": "Phòng lab phục vụ nghiên cứu và thực hành về kinh doanh quốc tế",
+    "startTime": "09:00",
+    "endTime": "18:00",
+    "total": 25,
+    "status": "active",
+    "major": "IB",
+    "mentor": null,
+    "createdAt": "2024-01-11T00:00:00.000Z",
+    "updatedAt": "2024-01-11T00:00:00.000Z"
+  },
+  {
+    "name": "Phòng Lab Marketing",
+    "code": "LAB-MKT-003",
+    "description": "Phòng lab chuyên về marketing và truyền thông",
+    "startTime": "08:30",
+    "endTime": "17:30",
+    "total": 20,
+    "status": "active",
+    "major": "Marketing",
+    "mentor": null,
+    "createdAt": "2024-01-12T00:00:00.000Z",
+    "updatedAt": "2024-01-12T00:00:00.000Z"
+  },
+  {
+    "name": "Phòng Lab Công Nghệ Thông Tin 2",
+    "code": "LAB-IT-004",
+    "description": "Phòng lab chuyên về mạng máy tính và bảo mật",
+    "startTime": "07:30",
+    "endTime": "16:30",
+    "total": 35,
+    "status": "active",
+    "major": "IT",
+    "mentor": null,
+    "createdAt": "2024-01-13T00:00:00.000Z",
+    "updatedAt": "2024-01-13T00:00:00.000Z"
+  },
+  {
+    "name": "Phòng Lab Kinh Doanh Quốc Tế 2",
+    "code": "LAB-IB-005",
+    "description": "Phòng lab phục vụ nghiên cứu về logistics và chuỗi cung ứng",
+    "startTime": "10:00",
+    "endTime": "19:00",
+    "total": 28,
+    "status": "inactive",
+    "major": "IB",
+    "mentor": null,
+    "createdAt": "2024-01-14T00:00:00.000Z",
+    "updatedAt": "2024-01-14T00:00:00.000Z"
+  }
+]
+
