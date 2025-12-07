@@ -1,0 +1,60 @@
+[{
+  "_id": {
+    "$oid": "676aaa111111111111111001"
+  },
+  "title": "Thông báo họp tuần - IT Lab",
+  "content": "Các bạn IT OJT có mặt lúc 9h sáng thứ Hai tuần này.",
+  "sender": {
+    "$oid": "675aaa111111111111111102"
+  },
+  "lab": {
+    "$oid": "675bbb222222222222222201"
+  },
+  "isImportant": true,
+  "status": "active"
+},
+{
+  "_id": {
+    "$oid": "676aaa111111111111111002"
+  },
+  "title": "Cập nhật tài liệu API",
+  "content": "Đã cập nhật tài liệu REST API. Kiểm tra trước buổi lab tiếp theo.",
+  "sender": {
+    "$oid": "675aaa111111111111111102"
+  },
+  "lab": {
+    "$oid": "675bbb222222222222222201"
+  },
+  "isImportant": false,
+  "status": "active"
+},
+{
+  "_id": {
+    "$oid": "676aaa111111111111111003"
+  },
+  "title": "Thông báo họp nhóm Android",
+  "content": "Tuần này họp review bài tập Android lúc 10h.",
+  "sender": {
+    "$oid": "675aaa111111111111111104"
+  },
+  "lab": {
+    "$oid": "675bbb222222222222222202"
+  },
+  "isImportant": true,
+  "status": "active"
+},
+{
+  "_id": {
+    "$oid": "676aaa111111111111111004"
+  },
+  "title": "Update tài liệu Navigation Component",
+  "content": "Mentor đã thêm ví dụ về Navigation Graph. Các bạn xem trước.",
+  "sender": {
+    "$oid": "675aaa111111111111111104"
+  },
+  "lab": {
+    "$oid": "675bbb222222222222222202"
+  },
+  "isImportant": false,
+  "status": "active"
+}]

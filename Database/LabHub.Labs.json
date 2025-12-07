@@ -1,0 +1,32 @@
+[{
+  "_id": {
+    "$oid": "675bbb222222222222222201"
+  },
+  "name": "IT Developer Lab",
+  "code": "LAB_IT01",
+  "description": "Lab chuyên thực hành backend.",
+  "startTime": "08:00",
+  "endTime": "17:00",
+  "total": 30,
+  "status": "active",
+  "major": "IT",
+  "mentor": {
+    "$oid": "675aaa111111111111111102"
+  }
+},
+{
+  "_id": {
+    "$oid": "675bbb222222222222222202"
+  },
+  "name": "Mobile App Lab",
+  "code": "LAB_MB01",
+  "description": "Lab học Android + Kotlin.",
+  "startTime": "09:00",
+  "endTime": "16:30",
+  "total": 25,
+  "status": "active",
+  "major": "IT",
+  "mentor": {
+    "$oid": "675aaa111111111111111104"
+  }
+}]

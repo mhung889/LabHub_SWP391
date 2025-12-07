@@ -3,18 +3,36 @@ const User = require("../models/user-model");
 const bcrypt = require("bcrypt");
 
 // =====================================
+// Generate unique student code HE + 6 digits
+// =====================================
+async function generateStudentCode() {
+  let code;
+  let exists = true;
+
+  while (exists) {
+    const random6 = Math.floor(Math.random() * 1_000_000)
+      .toString()
+      .padStart(6, "0");
+
+    code = `HE${random6}`;
+    exists = await Student.findOne({ studentCode: code });
+  }
+
+  return code;
+}
+
+// =====================================
 // 1️⃣ GET ALL STUDENTS
 // =====================================
 exports.getAllStudents = async (req, res) => {
   try {
     const students = await Student.find()
-      .populate("user", "fullName email phoneNumber gender")
+      .populate("user")
       .populate("lab", "name code")
-      .populate("major", "name code"); // ⭐ THÊM POPULATE MAJOR
+      .populate("major", "name code");
 
     return res.json(students);
   } catch (err) {
-    console.error(err);
     return res.status(500).json({ message: err.message });
   }
 };
@@ -27,14 +45,10 @@ exports.getStudentById = async (req, res) => {
     const student = await Student.findById(req.params.id)
       .populate("user")
       .populate("lab")
-      .populate("major", "name code"); // ⭐ THÊM MAJOR
-
-    if (!student)
-      return res.status(404).json({ message: "Student not found" });
+      .populate("major", "name code");
 
     return res.json(student);
   } catch (err) {
-    console.error(err);
     return res.status(500).json({ message: err.message });
   }
 };
@@ -47,39 +61,48 @@ exports.createStudent = async (req, res) => {
     const {
       fullName,
       email,
-      password,
       phoneNumber,
       gender,
+      dateOfBirth,
       address,
-      studentCode,
-      majorId,   // ⭐ DÙNG majorId
+      emergencyContact,
+      majorId,
       startDate,
     } = req.body;
 
-    // 1. Check email duplicate
-    const existing = await User.findOne({ email });
-    if (existing)
-      return res.status(400).json({ message: "Email already exists" });
+    // Normalize email
+    const normalizedEmail = email.trim().toLowerCase();
 
-    // 2. Create User
-    const passwordHash = await bcrypt.hash(password, 10);
+    // 1. Check duplicate email
+    const existing = await User.findOne({ email: normalizedEmail });
+    if (existing) {
+      return res.status(400).json({ message: "Email already exists" });
+    }
+
+    // 2. Create User with default password
+    const passwordHash = await bcrypt.hash("123456", 10);
 
     const user = await User.create({
       fullName,
-      email,
+      email: normalizedEmail,
       passwordHash,
       phoneNumber,
       gender,
+      dateOfBirth,
       address,
+      emergencyContact,
       role: "student",
       status: "active",
     });
 
-    // 3. Create Student profile
+    // 3. Auto generate student code
+    const studentCode = await generateStudentCode();
+
+    // 4. Create Student profile
     const student = await Student.create({
       user: user._id,
       studentCode,
-      major: majorId || null,   // ⭐ GÁN major đúng chuẩn
+      major: majorId || null,
       startDate,
       labStatus: "none",
       lab: null,
@@ -89,8 +112,8 @@ exports.createStudent = async (req, res) => {
       message: "Student created successfully",
       student,
     });
+
   } catch (err) {
-    console.error(err);
     return res.status(500).json({ message: err.message });
   }
 };
@@ -105,10 +128,12 @@ exports.updateStudent = async (req, res) => {
       email,
       phoneNumber,
       gender,
+      dateOfBirth,
       address,
-      studentCode,
-      majorId,   // ⭐ DÙNG majorId
+      emergencyContact,
+      majorId,
       startDate,
+      studentCode,
     } = req.body;
 
     const { id } = req.params;
@@ -120,44 +145,48 @@ exports.updateStudent = async (req, res) => {
 
     // 2. Check duplicate email
     if (email && email !== student.user.email) {
-      const existingUser = await User.findOne({ email });
+      const normalizedEmail = email.trim().toLowerCase();
+      const existingUser = await User.findOne({ email: normalizedEmail });
+
       if (existingUser)
         return res.status(400).json({ message: "Email already exists" });
+
+      student.user.email = normalizedEmail;
     }
 
-    // 3. Check duplicate studentCode
-    if (studentCode && studentCode !== student.studentCode) {
-      const existingStudent = await Student.findOne({
-        studentCode,
-        _id: { $ne: id },
-      });
-      if (existingStudent) {
-        return res.status(400).json({
-          message: "Mã sinh viên đã tồn tại. Vui lòng dùng mã khác.",
-        });
-      }
-    }
-
-    // 4. Update User info
+    // 3. Update User info
     if (fullName) student.user.fullName = fullName;
-    if (email) student.user.email = email;
     if (phoneNumber) student.user.phoneNumber = phoneNumber;
     if (gender) student.user.gender = gender;
+    if (dateOfBirth) student.user.dateOfBirth = dateOfBirth;
     if (address) student.user.address = address;
+
+    if (emergencyContact) {
+      student.user.emergencyContact = {
+        name: emergencyContact.name || student.user.emergencyContact?.name,
+        relationship:
+          emergencyContact.relationship ||
+          student.user.emergencyContact?.relationship,
+        phoneNumber:
+          emergencyContact.phoneNumber ||
+          student.user.emergencyContact?.phoneNumber,
+      };
+    }
+
     await student.user.save();
 
-    // 5. Update Student info
-    if (studentCode) student.studentCode = studentCode;
-    if (majorId) student.major = majorId;   // ⭐ Update major
+    // 4. Update Student info
+    if (majorId) student.major = majorId;
     if (startDate) student.startDate = startDate;
+    if (studentCode) student.studentCode = studentCode;
 
     await student.save();
 
-    // 6. Return updated with populate
+    // 5. Return updated with populate
     const updated = await Student.findById(id)
-      .populate("user", "fullName email phoneNumber gender address")
-      .populate("lab", "name code")
-      .populate("major", "name code");  // ⭐ POPULATE
+      .populate("user")
+      .populate("lab")
+      .populate("major");
 
     return res.json({
       message: "Student updated successfully",
@@ -165,7 +194,6 @@ exports.updateStudent = async (req, res) => {
     });
 
   } catch (err) {
-    console.error(err);
     return res.status(500).json({ message: err.message });
   }
 };
@@ -180,13 +208,11 @@ exports.deleteStudent = async (req, res) => {
     if (!student)
       return res.status(404).json({ message: "Student not found" });
 
-    // Delete user linked
     await User.findByIdAndDelete(student.user);
-
-    // Delete student profile
     await Student.findByIdAndDelete(req.params.id);
 
     return res.json({ message: "Student deleted successfully" });
+
   } catch (err) {
     return res.status(500).json({ message: err.message });
   }
