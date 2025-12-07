@@ -6,6 +6,9 @@ const labController = require('../controllers/lab.controller');
 
 const router = express.Router();
 
+router.route('/simple')
+  .get(asyncMiddleware(verifyToken), roleMiddleware('admin'), asyncMiddleware(labController.getLabs));
+
 router.route('/')
   .get(asyncMiddleware(verifyToken), roleMiddleware('admin'), asyncMiddleware(labController.getLabAll))
   .post(asyncMiddleware(verifyToken), roleMiddleware('admin'), asyncMiddleware(labController.createLab));

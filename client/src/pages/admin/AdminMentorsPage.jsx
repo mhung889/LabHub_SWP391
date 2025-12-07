@@ -65,10 +65,11 @@ export default function AdminMentorsPage() {
 
   const loadLabs = async () => {
     try {
-      const response = await labApi.getLabs();
+      const response = await labApi.getLabs({ status: 'active' });
       setLabs(response.data.labs || []);
     } catch (error) {
       console.error("Error loading labs:", error);
+      alert(error.response?.data?.message || "Lỗi khi tải danh sách lab");
     }
   };
 
