@@ -6,18 +6,22 @@ const labController = require('../controllers/lab.controller');
 
 const router = express.Router();
 
-router.route('/').post(labController.createLab);
-router.route('/').get(labController.getLabAll);
+router.route('/')
+  .get(asyncMiddleware(verifyToken), roleMiddleware('admin'), asyncMiddleware(labController.getLabAll))
+  .post(asyncMiddleware(verifyToken), roleMiddleware('admin'), asyncMiddleware(labController.createLab));
 router
   .route('/:id')
-  .put(labController.editLab)
-  .delete(labController.deleteLabById)
-  .get(labController.getLabById);
+  .get(asyncMiddleware(verifyToken), roleMiddleware('admin'), asyncMiddleware(labController.getLabById))
+  .put(asyncMiddleware(verifyToken), roleMiddleware('admin'), asyncMiddleware(labController.editLab))
+  .delete(asyncMiddleware(verifyToken), roleMiddleware('admin'), asyncMiddleware(labController.deleteLabById));
 
-router.route('/:id/students').get(labController.getStudentsByLabId);
+router.route('/:id/students')
+  .get(asyncMiddleware(verifyToken), roleMiddleware('admin'), asyncMiddleware(labController.getStudentsByLabId));
 
-router.route('/:id/student').post(labController.addStudentToLabById);
+router.route('/:id/student')
+  .post(asyncMiddleware(verifyToken), roleMiddleware('admin'), asyncMiddleware(labController.addStudentToLabById));
 
-router.route('/:id/remove-student').delete(labController.removeStudentFromLab);
+router.route('/:id/remove-student')
+  .delete(asyncMiddleware(verifyToken), roleMiddleware('admin'), asyncMiddleware(labController.removeStudentFromLab));
 
 module.exports = router;
