@@ -1,0 +1,76 @@
+[{
+  "_id": {
+    "$oid": "676bbb222222222222222001"
+  },
+  "student": {
+    "$oid": "675ccc333333333333333301"
+  },
+  "lab": {
+    "$oid": "675bbb222222222222222201"
+  },
+  "leaveType": "sick",
+  "startDate": "2024-12-05",
+  "endDate": "2024-12-06",
+  "totalDays": 2,
+  "reason": "Bị sốt cao",
+  "status": "approved",
+  "approver": {
+    "$oid": "675aaa111111111111111102"
+  },
+  "approvedAt": "2024-12-04T10:00:00Z"
+},
+{
+  "_id": {
+    "$oid": "676bbb222222222222222002"
+  },
+  "student": {
+    "$oid": "675ccc333333333333333301"
+  },
+  "lab": {
+    "$oid": "675bbb222222222222222201"
+  },
+  "leaveType": "personal",
+  "startDate": "2024-12-12",
+  "endDate": "2024-12-12",
+  "totalDays": 1,
+  "reason": "Việc gia đình gấp",
+  "status": "pending"
+},
+{
+  "_id": {
+    "$oid": "676bbb222222222222222003"
+  },
+  "student": {
+    "$oid": "675ccc333333333333333302"
+  },
+  "lab": {
+    "$oid": "675bbb222222222222222202"
+  },
+  "leaveType": "schoolActivity",
+  "startDate": "2024-12-08",
+  "endDate": "2024-12-08",
+  "totalDays": 1,
+  "reason": "Tham gia cuộc thi học thuật",
+  "status": "approved",
+  "approver": {
+    "$oid": "675aaa111111111111111104"
+  },
+  "approvedAt": "2024-12-07T09:00:00Z"
+},
+{
+  "_id": {
+    "$oid": "676bbb222222222222222004"
+  },
+  "student": {
+    "$oid": "675ccc333333333333333302"
+  },
+  "lab": {
+    "$oid": "675bbb222222222222222202"
+  },
+  "leaveType": "personal",
+  "startDate": "2024-12-15",
+  "endDate": "2024-12-15",
+  "totalDays": 1,
+  "reason": "Làm giấy tờ cá nhân",
+  "status": "pending"
+}]

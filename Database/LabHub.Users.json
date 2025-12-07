@@ -1,0 +1,125 @@
+[{
+  "_id": {
+    "$oid": "675aaa111111111111111101"
+  },
+  "fullName": "Admin System",
+  "email": "admin@labhub.com",
+  "passwordHash": "hash_admin",
+  "role": "admin",
+  "status": "active",
+  "gender": "other"
+},
+{
+  "_id": {
+    "$oid": "675aaa111111111111111102"
+  },
+  "fullName": "Mentor Nguyen Van A",
+  "email": "mentorA@labhub.com",
+  "passwordHash": "hash_mentorA",
+  "role": "mentor",
+  "gender": "male",
+  "phoneNumber": "0901111111",
+  "status": "active"
+},
+{
+  "_id": {
+    "$oid": "675aaa111111111111111104"
+  },
+  "fullName": "Mentor Tran Thi B",
+  "email": "mentorB@labhub.com",
+  "passwordHash": "hash_mentorB",
+  "role": "mentor",
+  "gender": "female",
+  "phoneNumber": "0902222222",
+  "status": "active"
+},
+{
+  "_id": {
+    "$oid": "6934fa9b09a0523550f80988"
+  },
+  "fullName": "S1",
+  "email": "s1@gamil.com",
+  "passwordHash": "$2b$10$Zl5mSIMBNX0b3HvAG9ozCOuufCfkttHRI9RG7qYZEI2trT42Ftkh.",
+  "role": "student",
+  "status": "active",
+  "phoneNumber": "0312345765",
+  "image": "https://res.cloudinary.com/dyz2xtks9/image/upload/v1741075645/Human%20Management/images/user_default_1741075643141.jpg",
+  "createdAt": {
+    "$date": "2025-12-07T03:55:07.548Z"
+  },
+  "updatedAt": {
+    "$date": "2025-12-07T03:55:07.548Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6934fac609a0523550f80998"
+  },
+  "fullName": "s2",
+  "email": "s2@gmail.com",
+  "passwordHash": "$2b$10$w6KySjR5i89CqiaE64lAKuFufv671.GZxVtOIZdwysb8i2WCj17QK",
+  "role": "student",
+  "status": "active",
+  "phoneNumber": "0395827056",
+  "image": "https://res.cloudinary.com/dyz2xtks9/image/upload/v1741075645/Human%20Management/images/user_default_1741075643141.jpg",
+  "createdAt": {
+    "$date": "2025-12-07T03:55:50.567Z"
+  },
+  "updatedAt": {
+    "$date": "2025-12-07T03:55:50.567Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6934fb0509a0523550f809ad"
+  },
+  "fullName": "s3",
+  "email": "s3@gmail.com",
+  "passwordHash": "$2b$10$jOQ.2QEXdgwPkUlhwui5.uZQqrFVg2j8m0JZqf2Q2InurifqPYJrC",
+  "role": "student",
+  "status": "active",
+  "phoneNumber": "0385967012",
+  "image": "https://res.cloudinary.com/dyz2xtks9/image/upload/v1741075645/Human%20Management/images/user_default_1741075643141.jpg",
+  "createdAt": {
+    "$date": "2025-12-07T03:56:53.774Z"
+  },
+  "updatedAt": {
+    "$date": "2025-12-07T03:56:53.774Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6934fb2809a0523550f809b5"
+  },
+  "fullName": "s4",
+  "email": "s4@gmail.com",
+  "passwordHash": "$2b$10$trzmRazRWF.AE1IICBDFPOLRH2voJbaBfbUA.dahC6Jf89MAn9aoG",
+  "role": "student",
+  "status": "active",
+  "phoneNumber": "0386591743",
+  "image": "https://res.cloudinary.com/dyz2xtks9/image/upload/v1741075645/Human%20Management/images/user_default_1741075643141.jpg",
+  "createdAt": {
+    "$date": "2025-12-07T03:57:28.737Z"
+  },
+  "updatedAt": {
+    "$date": "2025-12-07T03:57:28.737Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "6934fb4b09a0523550f809bd"
+  },
+  "fullName": "s5",
+  "email": "s5@gmail.com",
+  "passwordHash": "$2b$10$Ajq7VGsGF2tOc1jFAwaeV.3mLEP.zmFloiLj7pDd8nR3tqtYbohPy",
+  "role": "student",
+  "status": "active",
+  "phoneNumber": "0385953426",
+  "image": "https://res.cloudinary.com/dyz2xtks9/image/upload/v1741075645/Human%20Management/images/user_default_1741075643141.jpg",
+  "createdAt": {
+    "$date": "2025-12-07T03:58:03.930Z"
+  },
+  "updatedAt": {
+    "$date": "2025-12-07T03:58:03.930Z"
+  }
+}]
