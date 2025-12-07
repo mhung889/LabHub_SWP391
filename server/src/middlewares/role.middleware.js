@@ -6,10 +6,11 @@ module.exports = (roles = []) => {
   }
 
   return (req, res, next) => {
-    if (!req.account || !roles.includes(req.account.role)) {
+    if (!req.user || !roles.includes(req.user.role)) {
       throw new ErrorResponse(403, 'Bạn không có quyền truy cập');
     }
 
     next();
   };
 };
+

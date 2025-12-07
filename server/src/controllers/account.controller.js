@@ -1,44 +1,37 @@
 require('dotenv').config();
 const bcryptjs = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const cloudinary = require('../config/cloudinary');
 
-
-const AccountModel = require('../models/account.model');
+const UserModel = require('../models/user-model');
 
 const ErrorResponse = require('../helpers/ErrorResponse');
 
 
 module.exports = {
   login: async (req, res) => {
-    const { username, password } = req.body;
+    const { email, password } = req.body;
 
-    const account = await AccountModel.findOne({ username });
-
-    if (!account) {
-      // return res.status(400).json({
-      //   statusCode: 400,
-      //   message: 'TK hoặc MK không đúng',
-      // });
-
-      throw new ErrorResponse(400, 'TK hoặc MK không đúng');
+    if (!email || !password) {
+      throw new ErrorResponse(400, 'Vui lòng cung cấp email và mật khẩu');
     }
 
-    const checkPass = bcryptjs.compareSync(password, account.password);
+    const user = await UserModel.findOne({ email });
+
+    if (!user) {
+      throw new ErrorResponse(400, 'Email hoặc mật khẩu không đúng');
+    }
+
+    const checkPass = bcryptjs.compareSync(password, user.passwordHash);
 
     if (!checkPass) {
-      // return res.status(400).json({
-      //   statusCode: 400,
-      //   message: 'TK hoặc MK không đúng',
-      // });
-
-      throw new ErrorResponse(400, 'TK hoặc MK không đúng');
+      throw new ErrorResponse(400, 'Email hoặc mật khẩu không đúng');
     }
 
-    // jwt
     const payload = {
-      _id: account._id,
-      username: account.username,
-      role: account.role,
+      _id: user._id,
+      email: user.email,
+      role: user.role,
     };
 
     const token = jwt.sign(payload, process.env.JWT_SECRET, {
@@ -55,93 +48,203 @@ module.exports = {
       refreshToken,
     });
   },
+
   refreshToken: async (req, res) => {
     const { refreshToken } = req.body;
 
-    const decode = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+    try {
+      const decode = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
 
-    const account = await AccountModel.findById(decode._id);
-    if (!account) {
-      throw new ErrorResponse(401, 'Hãy đăng nhập để tiếp tục');
-    }
+      const user = await UserModel.findById(decode._id);
+      if (!user) {
+        throw new ErrorResponse(401, 'Hãy đăng nhập để tiếp tục');
+      }
 
-    const payload = {
-      _id: account._id,
-      username: account.username,
-      role: account.role,
-    };
+      const payload = {
+        _id: user._id,
+        email: user.email,
+        role: user.role,
+      };
 
-    const token = jwt.sign(payload, process.env.JWT_SECRET, {
-      expiresIn: '15m',
-    });
-
-    return res.status(200).json({
-      ...payload,
-      jwt: token,
-      refreshToken,
-    });
-  },
-  createAccount: async (req, res) => {
-    const body = req.body;
-
-    //validate the body
-    const { value, error } = validCreateAccount(body);
-
-    if (error) {
-      return res.status(400).json({
-        statusCode: 400,
-        message: error.message,
+      const token = jwt.sign(payload, process.env.JWT_SECRET, {
+        expiresIn: '15m',
       });
+
+      return res.status(200).json({
+        ...payload,
+        jwt: token,
+        refreshToken,
+      });
+    } catch (err) {
+      throw new ErrorResponse(401, 'Refresh token không hợp lệ');
+    }
+  },
+
+  createAccount: async (req, res) => {
+    const { email, password, fullName } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Thiếu email hoặc mật khẩu' });
     }
 
-    const account = await AccountModel.create(value);
-    return res.status(201).json(account);
+    const exists = await UserModel.findOne({ email });
+    if (exists) {
+      return res.status(400).json({ message: 'Email đã tồn tại' });
+    }
+
+    const passwordHash = bcryptjs.hashSync(password, 10);
+
+    const user = await UserModel.create({
+      fullName: fullName || email,
+      email,
+      passwordHash,
+    });
+
+    return res.status(201).json(user);
   },
+
+  // Basic listing for admins (kept simple)
   getAccounts: async (req, res) => {
-    const { username, gender } = req.query;
+    const { email, gender } = req.query;
 
     const bodyQuery = {};
-    if (username) {
-      bodyQuery.username = { $regex: `.*${username}.*`, $options: 'i' }; // i là không phân biệt hoa thường
+    if (email) {
+      bodyQuery.email = { $regex: `.*${email}.*`, $options: 'i' };
     }
 
     if (gender) {
       bodyQuery.gender = gender;
     }
 
-    const accounts = await AccountModel.find(bodyQuery);
+    const accounts = await UserModel.find(bodyQuery).select('-passwordHash');
 
     return res.status(200).json(accounts);
   },
 
   updateAccount: async (req, res) => {
-    const { id } = req.params;
-    const body = req.body;
+    try {
+      const { id } = req.params;
+      let body = { ...req.body };
 
-    //validate the body
+      // Handle file upload if image file is present
+      if (req.file) {
+        try {
+          // Try to upload to Cloudinary if configured
+          if (process.env.CLOUDINARY_NAME && process.env.CLOUDINARY_KEY && process.env.CLOUDINARY_SECRET) {
+            // Upload to Cloudinary
+            const uploadResult = await new Promise((resolve, reject) => {
+              const uploadStream = cloudinary.uploader.upload_stream(
+                {
+                  folder: 'LabHub/users',
+                  resource_type: 'image',
+                  transformation: [
+                    { width: 500, height: 500, crop: 'limit' },
+                    { quality: 'auto' }
+                  ]
+                },
+                (error, result) => {
+                  if (error) reject(error);
+                  else resolve(result);
+                }
+              );
+              uploadStream.end(req.file.buffer);
+            });
+            body.image = uploadResult.secure_url;
+          } else {
+            // Fallback to base64 if Cloudinary not configured
+            const fileData = req.file.buffer.toString('base64');
+            const mimeType = req.file.mimetype;
+            body.image = `data:${mimeType};base64,${fileData}`;
+          }
+        } catch (uploadError) {
+          console.error('Error uploading image:', uploadError);
+          // Fallback to base64 if Cloudinary upload fails
+          const fileData = req.file.buffer.toString('base64');
+          const mimeType = req.file.mimetype;
+          body.image = `data:${mimeType};base64,${fileData}`;
+        }
+      }
 
-    const account = await AccountModel.findByIdAndUpdate(id, body, {
-      new: true,
-    });
+      // Parse nested objects if they come as JSON strings from FormData
+      if (typeof body.emergencyContact === 'string') {
+        try {
+          body.emergencyContact = JSON.parse(body.emergencyContact);
+        } catch (e) {
+          // If not valid JSON, keep as is
+        }
+      }
 
-    return res.status(200).json(account);
+      if (body.password) {
+        body.passwordHash = bcryptjs.hashSync(body.password, 10);
+        delete body.password;
+      }
+
+      // Remove undefined and null values
+      Object.keys(body).forEach(key => {
+        if (body[key] === undefined || body[key] === 'undefined' || body[key] === null || body[key] === 'null') {
+          delete body[key];
+        }
+      });
+
+      const account = await UserModel.findByIdAndUpdate(id, body, {
+        new: true,
+      }).select('-passwordHash');
+
+      return res.status(200).json(account);
+    } catch (error) {
+      console.error('Error in updateAccount:', error);
+      throw error;
+    }
   },
+
   deleteAccount: async (req, res) => {
     const { id } = req.params;
 
-    const account = await AccountModel.findByIdAndDelete(id);
+    const account = await UserModel.findByIdAndDelete(id);
 
     return res.status(200).json(account);
   },
+
   getAccountById: async (req, res) => {
     const { id } = req.params;
 
-    const account = await AccountModel.findById(id);
+    const account = await UserModel.findById(id).select('-passwordHash');
 
     if (!account) {
       return res.status(404).json({ message: 'Account not found' });
     }
 
     return res.status(200).json(account);
+  },
+
+  changePassword: async (req, res) => {
+    const { id } = req.params;
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      throw new ErrorResponse(400, 'Vui lòng cung cấp mật khẩu hiện tại và mật khẩu mới');
+    }
+
+    const user = await UserModel.findById(id);
+
+    if (!user) {
+      throw new ErrorResponse(404, 'Không tìm thấy người dùng');
+    }
+
+    // Verify current password
+    const checkPass = bcryptjs.compareSync(currentPassword, user.passwordHash);
+
+    if (!checkPass) {
+      throw new ErrorResponse(400, 'Mật khẩu hiện tại không đúng');
+    }
+
+    // Hash and update new password
+    const passwordHash = bcryptjs.hashSync(newPassword, 10);
+
+    const updatedUser = await UserModel.findByIdAndUpdate(id, { passwordHash }, {
+      new: true,
+    }).select('-passwordHash');
+
+    return res.status(200).json(updatedUser);
   },
 };
