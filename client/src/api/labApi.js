@@ -5,6 +5,9 @@ const labApi = {
    // GET /labs?page=&limit=&search=&major=
   getAll: (params) => axiosInstance.get("/labs", { params }),
 
+  // GET /labs/simple?status= (for dropdown selection)
+  getLabs: (params) => axiosInstance.get("/labs/simple", { params }),
+
   // GET /labs/:id
   getById: (id) => axiosInstance.get(`/labs/${id}`),
 
