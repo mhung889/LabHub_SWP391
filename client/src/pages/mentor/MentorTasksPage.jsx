@@ -9,6 +9,7 @@ export default function MentorTasksPage() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [editingTask, setEditingTask] = useState(null);
   const [selectedTask, setSelectedTask] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
@@ -58,12 +59,32 @@ export default function MentorTasksPage() {
   }, []);
 
   const handleAddTask = () => {
+    setEditingTask(null);
     setFormData({
       taskTitle: "",
       description: "",
       startDate: "",
       dueDate: "",
       priority: "medium",
+      status: "active",
+    });
+    setFormErrors({});
+    setShowForm(true);
+  };
+
+  const handleEditTask = (task) => {
+    setEditingTask(task);
+    setFormData({
+      taskTitle: task.taskTitle || "",
+      description: task.description || "",
+      startDate: task.startDate
+        ? new Date(task.startDate).toISOString().split("T")[0]
+        : "",
+      dueDate: task.dueDate
+        ? new Date(task.dueDate).toISOString().split("T")[0]
+        : "",
+      priority: task.priority || "medium",
+      status: task.status || "active",
     });
     setFormErrors({});
     setShowForm(true);
@@ -132,13 +153,19 @@ export default function MentorTasksPage() {
 
     try {
       setLoading(true);
-      await taskApi.createTask(formData);
-      alert("Tạo task thành công");
+      if (editingTask) {
+        await taskApi.updateTask(editingTask._id, formData);
+        alert("Cập nhật task thành công");
+      } else {
+        await taskApi.createTask(formData);
+        alert("Tạo task thành công");
+      }
       setShowForm(false);
+      setEditingTask(null);
       await loadTasks(pagination.page);
     } catch (error) {
-      console.error("Error creating task:", error);
-      alert(error.response?.data?.message || "Lỗi khi tạo task");
+      console.error("Error saving task:", error);
+      alert(error.response?.data?.message || "Lỗi khi lưu task");
     } finally {
       setLoading(false);
     }
@@ -237,7 +264,7 @@ export default function MentorTasksPage() {
       {showForm && (
         <Card className="p-6 bg-muted/50">
           <h3 className="text-lg font-bold text-foreground mb-4">
-            Tạo Task Mới
+            {editingTask ? "Sửa Task" : "Tạo Task Mới"}
           </h3>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -315,32 +342,64 @@ export default function MentorTasksPage() {
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Độ Ưu Tiên
-              </label>
-              <select
-                className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground"
-                value={formData.priority}
-                onChange={(e) =>
-                  setFormData({ ...formData, priority: e.target.value })
-                }
-              >
-                <option value="low">Thấp</option>
-                <option value="medium">Trung bình</option>
-                <option value="high">Cao</option>
-              </select>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Độ Ưu Tiên
+                </label>
+                <select
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground"
+                  value={formData.priority}
+                  onChange={(e) =>
+                    setFormData({ ...formData, priority: e.target.value })
+                  }
+                >
+                  <option value="low">Thấp</option>
+                  <option value="medium">Trung bình</option>
+                  <option value="high">Cao</option>
+                </select>
+              </div>
+
+              {editingTask && (
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    Trạng Thái
+                  </label>
+                  <select
+                    className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground"
+                    value={formData.status}
+                    onChange={(e) =>
+                      setFormData({ ...formData, status: e.target.value })
+                    }
+                  >
+                    <option value="active">Hoạt động</option>
+                    <option value="closed">Đã đóng</option>
+                  </select>
+                </div>
+              )}
             </div>
 
             <div className="flex gap-2">
               <Button type="submit" className="gap-2" disabled={loading}>
-                <Plus className="w-4 h-4" />
-                Tạo Task
+                {editingTask ? (
+                  <>
+                    <Edit2 className="w-4 h-4" />
+                    Cập Nhật Task
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4" />
+                    Tạo Task
+                  </>
+                )}
               </Button>
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setShowForm(false)}
+                onClick={() => {
+                  setShowForm(false);
+                  setEditingTask(null);
+                }}
                 disabled={loading}
               >
                 Hủy
@@ -430,8 +489,17 @@ export default function MentorTasksPage() {
                             variant="ghost"
                             size="icon"
                             onClick={() => handleViewDetail(task)}
+                            title="Xem chi tiết"
                           >
                             <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEditTask(task)}
+                            title="Sửa task"
+                          >
+                            <Edit2 className="w-4 h-4" />
                           </Button>
                           <Button
                             variant="ghost"
@@ -446,6 +514,7 @@ export default function MentorTasksPage() {
                             size="icon"
                             className="text-destructive hover:text-destructive"
                             onClick={() => handleDelete(task)}
+                            title="Xóa task"
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>

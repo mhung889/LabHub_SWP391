@@ -7,4 +7,5 @@ export const setRefreshToken = (token) => localStorage.setItem("refreshToken", t
 export const clearStorage = () => {
   localStorage.removeItem("jwt");
   localStorage.removeItem("refreshToken");
+  localStorage.removeItem("userInfo");
 };

@@ -27,6 +27,13 @@ router.post(
   asyncMiddleware(taskController.createTask)
 );
 
+router.patch(
+  '/:id',
+  asyncMiddleware(verifyToken),
+  roleMiddleware('mentor'),
+  asyncMiddleware(taskController.updateTask)
+);
+
 router.post(
   '/:id/assign',
   asyncMiddleware(verifyToken),

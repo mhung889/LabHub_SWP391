@@ -18,6 +18,10 @@ const taskApi = {
     return axiosInstance.post("/tasks", data);
   },
 
+  updateTask(id, data) {
+    return axiosInstance.patch(`/tasks/${id}`, data);
+  },
+
   assignTask(id, data) {
     return axiosInstance.post(`/tasks/${id}/assign`, data);
   },
