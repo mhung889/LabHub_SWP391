@@ -13,6 +13,9 @@ const {
   getAccountById,
   refreshToken,
   changePassword,
+  getProfile,
+  updateProfile,
+  uploadAvatar,
 } = require('../controllers/account.controller');
 
 const router = express.Router();
@@ -33,10 +36,21 @@ router.route('/login').post(asyncMiddleware(login));
 
 router.route('/refresh-token').post(asyncMiddleware(refreshToken));
 
+router.route('/profile')
+  .get(asyncMiddleware(verifyToken), asyncMiddleware(getProfile))
+  .put(asyncMiddleware(verifyToken), asyncMiddleware(updateProfile));
+
+router.route('/profile/avatar')
+  .post(
+    asyncMiddleware(verifyToken),
+    upload.single('avatar'),
+    asyncMiddleware(uploadAvatar)
+  );
+
 router
   .route('/:id')
   .patch(
-    asyncMiddleware(verifyToken), 
+    asyncMiddleware(verifyToken),
     upload.single('image'),
     asyncMiddleware(updateAccount)
   )

@@ -1,257 +1,466 @@
-import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Button, Form, Card } from 'react-bootstrap';
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
-import { getAccessToken, clearStorage } from '../../utils/storage';
-import authApi from '../../api/authApi';
-import './StudentProfile.css';
+import React, { useState, useEffect } from "react";
+import {
+  Container,
+  Row,
+  Col,
+  Button,
+  Card,
+  Form,
+  Modal,
+  Alert,
+} from "react-bootstrap";
+import { useNavigate, useLocation } from "react-router-dom";
+import authApi from "../../api/authApi";
+import { getAccessToken } from "../../utils/storage";
+
+import "./StudentProfile.css";
 
 const StudentProfile = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [user, setUser] = useState(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState({});
+  const [student, setStudent] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('profile'); // 'profile' or 'password'
+  const [isEditing, setIsEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordData, setPasswordData] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: ''
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
   });
-  const [showPasswords, setShowPasswords] = useState({
-    currentPassword: false,
-    newPassword: false,
-    confirmPassword: false
+  const [changingPassword, setChangingPassword] = useState(false);
+
+  // Form data
+  const [formData, setFormData] = useState({
+    fullName: "",
+    phoneNumber: "",
+    address: "",
+    className: "",
+    dateOfBirth: "",
+    gender: "",
   });
-  const fileInputRef = React.useRef(null);
 
   useEffect(() => {
-    // Lấy token từ localStorage
-    const token = getAccessToken();
-    if (!token) {
-      navigate('/login');
-      return;
-    }
-
-    // Lấy user ID từ localStorage
-    const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
-    if (!userInfo._id) {
-      navigate('/login');
-      return;
-    }
-
-    // Lấy thông tin chi tiết từ backend
-    const fetchUserProfile = async () => {
+    const fetchProfile = async () => {
       try {
-        const response = await authApi.getUserProfile(userInfo._id);
-        setUser(response.data);
-        setFormData(response.data);
+        const token = getAccessToken();
+        if (!token) {
+          navigate("/login");
+          return;
+        }
+
+        const response = await authApi.getProfile();
+        console.log("Profile response:", response); // Debug log
+
+        // Luôn set user nếu có
+        if (response.user) {
+          setUser(response.user);
+          localStorage.setItem("user", JSON.stringify(response.user));
+        }
+
+        // Set student nếu có, nếu không có thì để null (không logout)
+        setStudent(response.student || null);
+
+        // Khởi tạo form data - chỉ khi có user
+        if (response.user) {
+          setFormData({
+            fullName: response.user.fullName || "",
+            phoneNumber: response.user.phoneNumber || "",
+            address: response.student?.address || "",
+            className: response.student?.className || "",
+            dateOfBirth: response.student?.dateOfBirth
+              ? new Date(response.student.dateOfBirth)
+                  .toISOString()
+                  .split("T")[0]
+              : "",
+            gender: response.student?.gender || "",
+          });
+        }
       } catch (error) {
-        console.error('Lỗi khi lấy thông tin hồ sơ:', error);
-        // Fallback to localStorage if API fails
-        setUser(userInfo);
-        setFormData(userInfo);
+        console.error("Error fetching profile:", error);
+        // Chỉ logout nếu thực sự là lỗi 401 (unauthorized)
+        // Các lỗi khác (404, 500, etc.) chỉ hiển thị thông báo, không logout
+        if (error.response?.status === 401) {
+          // Token không hợp lệ hoặc hết hạn - logout
+          authApi.logout();
+          navigate("/login");
+        } else {
+          // Lỗi khác (404, 500, network error, etc.) - chỉ hiển thị thông báo
+          setError(
+            error.response?.data?.message ||
+              "Không thể tải thông tin hồ sơ. Vui lòng thử lại sau."
+          );
+          // Vẫn hiển thị trang với thông tin hiện có (nếu có)
+        }
       } finally {
         setLoading(false);
       }
     };
 
-    fetchUserProfile();
+    fetchProfile();
   }, [navigate]);
 
-  const handleChange = (e) => {
+  const handleLogout = () => {
+    authApi.logout();
+    navigate("/login");
+  };
+
+  const handleEdit = () => {
+    setIsEditing(true);
+    setError("");
+    setSuccess("");
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+    setError("");
+    setSuccess("");
+    // Reset form data về giá trị ban đầu
+    if (user && student) {
+      setFormData({
+        fullName: user.fullName || "",
+        phoneNumber: user.phoneNumber || student.phoneNumber || "",
+        address: student.address || "",
+        className: student.className || "",
+        dateOfBirth: student.dateOfBirth
+          ? new Date(student.dateOfBirth).toISOString().split("T")[0]
+          : "",
+        gender: student.gender || "",
+      });
+    }
+  };
+
+  const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
-  const handleSave = async () => {
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+    setSaving(true);
+
     try {
-      const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
-      
-      // Create clean data object without undefined values
-      const cleanData = {};
-      Object.keys(formData).forEach(key => {
-        if (formData[key] !== undefined && formData[key] !== null) {
-          cleanData[key] = formData[key];
-        }
-      });
-      
-      const response = await authApi.updateUserProfile(userInfo._id, cleanData);
-      setUser(response.data);
-      setFormData(response.data);
+      // Chỉ gửi các trường có giá trị
+      const updateData = {};
+      if (formData.fullName && formData.fullName.trim()) {
+        updateData.fullName = formData.fullName.trim();
+      }
+      // Luôn gửi phoneNumber nếu có trong formData (kể cả empty string)
+      if (formData.phoneNumber !== undefined) {
+        updateData.phoneNumber = formData.phoneNumber.trim();
+      }
+      if (formData.address !== undefined) {
+        updateData.address = formData.address.trim() || null;
+      }
+      if (formData.className !== undefined) {
+        updateData.className = formData.className.trim() || null;
+      }
+      if (formData.dateOfBirth && formData.dateOfBirth.trim()) {
+        updateData.dateOfBirth = formData.dateOfBirth;
+      }
+      if (formData.gender && formData.gender.trim()) {
+        updateData.gender = formData.gender;
+      }
+
+      console.log("Updating profile with data:", updateData);
+
+      const response = await authApi.updateProfile(updateData);
+
+      console.log("Update response:", response);
+
+      // Cập nhật state
+      if (response.user) {
+        setUser(response.user);
+        localStorage.setItem("user", JSON.stringify(response.user));
+      }
+      if (response.student) {
+        setStudent(response.student);
+        // Cập nhật formData với dữ liệu mới
+        setFormData({
+          fullName: response.user?.fullName || "",
+          phoneNumber:
+            response.user?.phoneNumber || response.student?.phoneNumber || "",
+          address: response.student?.address || "",
+          className: response.student?.className || "",
+          dateOfBirth: response.student?.dateOfBirth
+            ? new Date(response.student.dateOfBirth).toISOString().split("T")[0]
+            : "",
+          gender: response.student?.gender || "",
+        });
+      }
+
+      setSuccess(response.message || "Cập nhật hồ sơ thành công!");
       setIsEditing(false);
-      
-      // Cập nhật localStorage với thông tin mới
-      localStorage.setItem('userInfo', JSON.stringify(response.data));
-      
-      toast.success('Cập nhật hồ sơ thành công!');
-    } catch (error) {
-      console.error('Lỗi khi cập nhật hồ sơ:', error);
-      toast.error(error.response?.data?.message || 'Lỗi khi cập nhật hồ sơ');
+
+      // Ẩn thông báo sau 3 giây
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      console.error("Update profile error:", err);
+      const errorMessage =
+        err.response?.data?.message ||
+        err.message ||
+        "Cập nhật thất bại. Vui lòng thử lại.";
+      setError(errorMessage);
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleAvatarClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = async (e) => {
-    const file = e.target.files?.[0];
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files[0];
     if (!file) return;
 
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      toast.error('Vui lòng chọn file ảnh');
+    // Kiểm tra file type
+    if (!file.type.startsWith("image/")) {
+      setError("Vui lòng chọn file ảnh hợp lệ");
       return;
     }
 
-    // Validate file size (max 5MB)
+    // Kiểm tra file size (5MB)
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('Kích thước ảnh không được vượt quá 5MB');
+      setError("Kích thước file không được vượt quá 5MB");
       return;
     }
+
+    setError("");
+    setSuccess("");
+    setUploadingAvatar(true);
 
     try {
-      // Show preview with base64 immediately
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const preview = event.target?.result;
-        setUser(prev => ({
-          ...prev,
-          image: preview
-        }));
-      };
-      reader.readAsDataURL(file);
+      const response = await authApi.uploadAvatar(file);
 
-      // Upload file to backend
-      const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
-      const formDataToSend = new FormData();
-      formDataToSend.append('image', file);
-
-      try {
-        const response = await authApi.updateUserProfile(userInfo._id, formDataToSend);
-        setUser(response.data);
-        setFormData(response.data);
-        
-        // Update localStorage with the response data (not with base64)
-        localStorage.setItem('userInfo', JSON.stringify(response.data));
-        
-        toast.success('Cập nhật ảnh đại diện thành công!');
-      } catch (error) {
-        console.error('Lỗi khi cập nhật ảnh:', error);
-        toast.error(error.response?.data?.message || 'Lỗi khi cập nhật ảnh');
+      // Cập nhật state với dữ liệu mới
+      if (response.user) {
+        setUser(response.user);
+        localStorage.setItem("user", JSON.stringify(response.user));
       }
-    } catch (error) {
-      console.error('Lỗi khi xử lý ảnh:', error);
-      toast.error('Lỗi khi xử lý ảnh');
-    }
+      if (response.student) {
+        setStudent(response.student);
+      }
 
-    // Reset file input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+      setSuccess(response.message || "Cập nhật avatar thành công!");
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      console.error("Upload avatar error:", err);
+      const errorMessage =
+        err.response?.data?.message ||
+        err.message ||
+        "Upload avatar thất bại. Vui lòng thử lại.";
+      setError(errorMessage);
+    } finally {
+      setUploadingAvatar(false);
+      // Reset input để có thể chọn lại file cùng tên
+      e.target.value = "";
     }
-  };
-
-  const handleLogout = () => {
-    clearStorage();
-    navigate('/login');
-    toast.success('Đã đăng xuất');
   };
 
   const handlePasswordChange = (e) => {
     const { name, value } = e.target;
-    setPasswordData(prev => ({
+    setPasswordData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
-  const handleChangePassword = async () => {
-    // Validate
-    if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
-      toast.error('Vui lòng điền tất cả các trường');
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+
+    // Validation
+    if (
+      !passwordData.currentPassword ||
+      !passwordData.newPassword ||
+      !passwordData.confirmPassword
+    ) {
+      setError("Vui lòng điền đầy đủ thông tin");
       return;
     }
 
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      toast.error('Mật khẩu mới không khớp');
+      setError("Mật khẩu mới và xác nhận mật khẩu không khớp");
       return;
     }
 
     if (passwordData.newPassword.length < 6) {
-      toast.error('Mật khẩu mới phải có ít nhất 6 ký tự');
+      setError("Mật khẩu mới phải có ít nhất 6 ký tự");
       return;
     }
 
+    setChangingPassword(true);
     try {
-      const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
-      await authApi.changePassword(userInfo._id, {
+      if (!user?._id) {
+        setError("Không tìm thấy thông tin người dùng");
+        return;
+      }
+
+      await authApi.changePassword(user._id, {
         currentPassword: passwordData.currentPassword,
-        newPassword: passwordData.newPassword
+        newPassword: passwordData.newPassword,
       });
 
-      toast.success('Thay đổi mật khẩu thành công!');
+      setSuccess("Đổi mật khẩu thành công!");
+      setShowPasswordModal(false);
       setPasswordData({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: ''
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
       });
-      setActiveTab('profile');
-    } catch (error) {
-      console.error('Lỗi khi thay đổi mật khẩu:', error);
-      toast.error(error.response?.data?.message || 'Lỗi khi thay đổi mật khẩu');
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      console.error("Change password error:", err);
+      const errorMessage =
+        err.response?.data?.message ||
+        err.message ||
+        "Đổi mật khẩu thất bại. Vui lòng thử lại.";
+      setError(errorMessage);
+    } finally {
+      setChangingPassword(false);
     }
   };
 
-  if (loading) return <div className="p-5 text-center">Đang tải...</div>;
+  const formatDate = (dateString) => {
+    if (!dateString) return "Chưa cập nhật";
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        // Nếu là string date format "YYYY-MM-DD"
+        if (
+          typeof dateString === "string" &&
+          dateString.match(/^\d{4}-\d{2}-\d{2}$/)
+        ) {
+          const [year, month, day] = dateString.split("-");
+          return `${day}/${month}/${year}`;
+        }
+        return dateString; // Trả về nguyên bản nếu không parse được
+      }
+      return date.toLocaleDateString("vi-VN", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+    } catch (error) {
+      return dateString || "Chưa cập nhật";
+    }
+  };
+
+  if (loading) {
+    return (
+      <div
+        className="d-flex justify-content-center align-items-center"
+        style={{ minHeight: "100vh" }}
+      >
+        <div className="text-center">
+          <div className="spinner-border text-primary-custom" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
+          <p className="mt-3 text-secondary">Đang tải thông tin...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const isProfilePage = location.pathname === "/student/profile";
 
   return (
     <div className="d-flex w-100 overflow-hidden">
       {/* --- Sidebar --- */}
       <aside className="sidebar-wrapper d-flex flex-column flex-shrink-0 p-4 d-none d-lg-flex">
         <div className="d-flex align-items-center gap-2 px-2 mb-5">
-          <span className="material-symbols-outlined text-primary-custom fs-2">task_alt</span>
+          <span className="material-symbols-outlined text-primary-custom fs-2">
+            task_alt
+          </span>
           <h2 className="h4 fw-bold m-0 text-dark">LabHub</h2>
         </div>
 
         <div className="mb-4">
           <div className="d-flex align-items-center gap-3 mb-4">
-            <div 
-              className="avatar bg-light"
-              style={{ backgroundImage: `url("${user?.image || 'https://via.placeholder.com/50'}")` }}
-            ></div>
+            <div
+              className="avatar bg-light d-flex align-items-center justify-content-center"
+              style={{
+                backgroundImage: user?.image ? `url("${user.image}")` : "none",
+                backgroundColor: user?.image ? "transparent" : "#e2e8f0",
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+              }}
+            >
+              {!user?.image && (
+                <span
+                  className="material-symbols-outlined text-secondary"
+                  style={{ fontSize: "24px" }}
+                >
+                  person
+                </span>
+              )}
+            </div>
             <div>
-              <h1 className="h6 fw-bold mb-0 text-dark">{user?.fullName || 'Student'}</h1>
-              <small className="text-secondary">MSSV: {user?.studentId || 'N/A'}</small>
+              <h1 className="h6 fw-bold mb-0 text-dark">
+                {user?.fullName || "Student"}
+              </h1>
+              <small className="text-secondary">
+                {student?.studentCode
+                  ? `MSSV: ${student.studentCode}`
+                  : user?.email || ""}
+              </small>
             </div>
           </div>
 
           <nav className="d-flex flex-column gap-2">
-            <a href="/student" className="nav-link-custom">
-              <span className="material-symbols-outlined">dashboard</span>
+            <button
+              onClick={() => navigate("/student")}
+              className={`nav-link-custom ${!isProfilePage ? "active" : ""}`}
+            >
+              <span
+                className="material-symbols-outlined"
+                style={{
+                  fontVariationSettings: !isProfilePage
+                    ? "'FILL' 1"
+                    : "'FILL' 0",
+                }}
+              >
+                dashboard
+              </span>
               Bảng điều khiển
-            </a>
-            <a href="#" className="nav-link-custom">
+            </button>
+            <button className="nav-link-custom">
               <span className="material-symbols-outlined">history</span>
               Lịch sử điểm danh
-            </a>
-            <a href="/student/profile" className="nav-link-custom active">
-              <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>person</span>
+            </button>
+            <button
+              onClick={() => navigate("/student/profile")}
+              className={`nav-link-custom ${isProfilePage ? "active" : ""}`}
+            >
+              <span
+                className="material-symbols-outlined"
+                style={{
+                  fontVariationSettings: isProfilePage
+                    ? "'FILL' 1"
+                    : "'FILL' 0",
+                }}
+              >
+                person
+              </span>
               Hồ sơ
-            </a>
+            </button>
           </nav>
         </div>
 
         <div className="mt-auto d-flex flex-column gap-3">
-          <a href="#" className="nav-link-custom">
+          <button className="nav-link-custom">
             <span className="material-symbols-outlined">settings</span>
             Cài đặt
-          </a>
-          <Button 
-            variant="light" 
+          </button>
+          <Button
+            variant="light"
             className="w-100 fw-bold text-secondary py-2"
             onClick={handleLogout}
           >
@@ -261,395 +470,629 @@ const StudentProfile = () => {
       </aside>
 
       {/* --- Main Content --- */}
-      <main className="flex-grow-1 p-4 p-lg-5" style={{ backgroundColor: '#f6f7f8' }}>
+      <main
+        className="flex-grow-1 p-4 p-lg-5"
+        style={{ backgroundColor: "#f6f7f8" }}
+      >
         <Container fluid="lg">
           {/* Header */}
           <div className="mb-4 mb-lg-5">
             <h1 className="display-6 fw-bold text-dark mb-2">Hồ sơ cá nhân</h1>
-            <p className="text-secondary">Quản lý thông tin cá nhân của bạn</p>
+            <p className="text-secondary">
+              Quản lý thông tin cá nhân và tài khoản của bạn.
+            </p>
           </div>
 
+          {/* Alert Messages */}
+          {error && (
+            <Alert variant="danger" dismissible onClose={() => setError("")}>
+              {error}
+            </Alert>
+          )}
+          {success && (
+            <Alert variant="success" dismissible onClose={() => setSuccess("")}>
+              {success}
+            </Alert>
+          )}
+
           <Row className="g-4">
-            {/* Avatar Card */}
+            {/* Profile Card */}
             <Col lg={4}>
-              <Card className="custom-card p-4 text-center">
-                <div 
-                  className="rounded-circle mx-auto mb-3"
-                  onClick={handleAvatarClick}
-                  style={{
-                    width: '150px',
-                    height: '150px',
-                    backgroundImage: `url("${user?.image || 'https://via.placeholder.com/150'}")`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    cursor: 'pointer',
-                    transition: 'opacity 0.3s ease',
-                    position: 'relative'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.opacity = '0.7'}
-                  onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-                  title="Click để đổi ảnh đại diện"
-                >
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: '50%',
-                      left: '50%',
-                      transform: 'translate(-50%, -50%)',
-                      color: 'white',
-                      textAlign: 'center',
-                      opacity: '0',
-                      transition: 'opacity 0.3s ease',
-                      pointerEvents: 'none'
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
-                    className="camera-icon"
-                  >
-                    <span className="material-symbols-outlined" style={{ fontSize: '32px' }}>camera_alt</span>
+              <Card className="profile-card custom-card border-0">
+                <Card.Body className="p-4 text-center">
+                  <div className="profile-avatar-wrapper mb-4">
+                    <div
+                      className="profile-avatar mx-auto"
+                      style={{
+                        backgroundImage: user?.image
+                          ? `url("${user.image}")`
+                          : "none",
+                        backgroundColor: user?.image
+                          ? "transparent"
+                          : "#e2e8f0",
+                        opacity: uploadingAvatar ? 0.6 : 1,
+                      }}
+                    >
+                      {!user?.image && (
+                        <span
+                          className="material-symbols-outlined text-secondary"
+                          style={{ fontSize: "64px" }}
+                        >
+                          person
+                        </span>
+                      )}
+                      {uploadingAvatar && (
+                        <div className="position-absolute top-50 start-50 translate-middle">
+                          <div
+                            className="spinner-border text-primary-custom"
+                            role="status"
+                          >
+                            <span className="visually-hidden">
+                              Uploading...
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <label
+                      htmlFor="avatar-upload"
+                      className="btn-edit-avatar"
+                      style={{
+                        cursor: uploadingAvatar ? "not-allowed" : "pointer",
+                        pointerEvents: uploadingAvatar ? "none" : "auto",
+                      }}
+                    >
+                      <span className="material-symbols-outlined">
+                        camera_alt
+                      </span>
+                    </label>
+                    <input
+                      type="file"
+                      id="avatar-upload"
+                      accept="image/*"
+                      onChange={handleAvatarChange}
+                      style={{ display: "none" }}
+                      disabled={uploadingAvatar}
+                    />
                   </div>
-                </div>
-
-                {/* Hidden file input */}
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileChange}
-                  style={{ display: 'none' }}
-                />
-
-                <h3 className="h5 fw-bold text-dark">{user?.fullName}</h3>
-                <p className="text-secondary small mb-3">{user?.email}</p>
-                <p className="text-secondary small">
-                  <strong>MSSV:</strong> {user?.studentId}
-                </p>
-                <p className="text-secondary small">
-                  <strong>Khoa:</strong> {user?.department}
-                </p>
+                  <h3 className="h4 fw-bold text-dark mb-1">
+                    {user?.fullName || "Student"}
+                  </h3>
+                  <p className="text-secondary mb-3">{user?.email || ""}</p>
+                  <div className="d-flex align-items-center justify-content-center gap-2 mb-3">
+                    <span
+                      className={`badge ${
+                        user?.status === "active"
+                          ? "bg-success"
+                          : "bg-secondary"
+                      } px-3 py-2`}
+                    >
+                      {user?.status === "active"
+                        ? "Đang hoạt động"
+                        : "Không hoạt động"}
+                    </span>
+                  </div>
+                  <Button
+                    variant="outline-primary"
+                    className="w-100 mt-3"
+                    onClick={isEditing ? handleCancel : handleEdit}
+                    disabled={saving}
+                  >
+                    <span
+                      className="material-symbols-outlined me-2"
+                      style={{ verticalAlign: "middle", fontSize: "20px" }}
+                    >
+                      {isEditing ? "close" : "edit"}
+                    </span>
+                    {isEditing ? "Hủy" : "Chỉnh sửa hồ sơ"}
+                  </Button>
+                </Card.Body>
               </Card>
             </Col>
 
-            {/* Profile Form */}
+            {/* Information Cards */}
             <Col lg={8}>
-              <Card className="custom-card p-4">
-                {/* Tabs */}
-                <div className="d-flex gap-3 mb-4 border-bottom pb-3">
-                  <Button
-                    variant={activeTab === 'profile' ? 'primary' : 'light'}
-                    size="sm"
-                    onClick={() => setActiveTab('profile')}
-                    className={activeTab === 'profile' ? 'bg-primary-custom border-0' : 'text-secondary'}
-                  >
-                    Thông tin cá nhân
-                  </Button>
-                  <Button
-                    variant={activeTab === 'password' ? 'primary' : 'light'}
-                    size="sm"
-                    onClick={() => setActiveTab('password')}
-                    className={activeTab === 'password' ? 'bg-primary-custom border-0' : 'text-secondary'}
-                  >
-                    Thay đổi mật khẩu
-                  </Button>
-                </div>
+              <Row className="g-4">
+                {/* Thông tin cá nhân */}
+                <Col md={12}>
+                  <Card className="custom-card border-0">
+                    <Card.Header className="bg-white border-0 pb-0 pt-4 px-4">
+                      <h4 className="h5 fw-bold text-dark mb-0">
+                        <span
+                          className="material-symbols-outlined me-2 text-primary-custom"
+                          style={{ verticalAlign: "middle", fontSize: "24px" }}
+                        >
+                          person
+                        </span>
+                        Thông tin cá nhân
+                      </h4>
+                    </Card.Header>
+                    <Card.Body className="p-4">
+                      {isEditing ? (
+                        <Form onSubmit={handleSubmit}>
+                          <Row className="g-3">
+                            <Col md={6}>
+                              <Form.Group>
+                                <Form.Label className="info-label">
+                                  Họ và tên *
+                                </Form.Label>
+                                <Form.Control
+                                  type="text"
+                                  name="fullName"
+                                  value={formData.fullName}
+                                  onChange={handleInputChange}
+                                  required
+                                  className="custom-input"
+                                />
+                              </Form.Group>
+                            </Col>
+                            <Col md={6}>
+                              <Form.Group>
+                                <Form.Label className="info-label">
+                                  Email
+                                </Form.Label>
+                                <Form.Control
+                                  type="email"
+                                  value={user?.email || ""}
+                                  disabled
+                                  className="custom-input bg-light"
+                                />
+                                <Form.Text className="text-muted">
+                                  Email không thể thay đổi
+                                </Form.Text>
+                              </Form.Group>
+                            </Col>
+                            <Col md={6}>
+                              <Form.Group>
+                                <Form.Label className="info-label">
+                                  Số điện thoại
+                                </Form.Label>
+                                <Form.Control
+                                  type="tel"
+                                  name="phoneNumber"
+                                  value={formData.phoneNumber}
+                                  onChange={handleInputChange}
+                                  placeholder="Nhập số điện thoại"
+                                  className="custom-input"
+                                />
+                              </Form.Group>
+                            </Col>
+                            <Col md={6}>
+                              <Form.Group>
+                                <Form.Label className="info-label">
+                                  Mã số sinh viên
+                                </Form.Label>
+                                <Form.Control
+                                  type="text"
+                                  value={student?.studentCode || ""}
+                                  disabled
+                                  className="custom-input bg-light"
+                                />
+                                <Form.Text className="text-muted">
+                                  MSSV không thể thay đổi
+                                </Form.Text>
+                              </Form.Group>
+                            </Col>
+                            <Col md={6}>
+                              <Form.Group>
+                                <Form.Label className="info-label">
+                                  Ngày sinh
+                                </Form.Label>
+                                <Form.Control
+                                  type="date"
+                                  name="dateOfBirth"
+                                  value={formData.dateOfBirth}
+                                  onChange={handleInputChange}
+                                  className="custom-input"
+                                />
+                              </Form.Group>
+                            </Col>
+                            <Col md={6}>
+                              <Form.Group>
+                                <Form.Label className="info-label">
+                                  Giới tính
+                                </Form.Label>
+                                <Form.Select
+                                  name="gender"
+                                  value={formData.gender}
+                                  onChange={handleInputChange}
+                                  className="custom-input"
+                                >
+                                  <option value="">Chọn giới tính</option>
+                                  <option value="male">Nam</option>
+                                  <option value="female">Nữ</option>
+                                  <option value="other">Khác</option>
+                                </Form.Select>
+                              </Form.Group>
+                            </Col>
+                            <Col md={6}>
+                              <Form.Group>
+                                <Form.Label className="info-label">
+                                  Lớp
+                                </Form.Label>
+                                <Form.Control
+                                  type="text"
+                                  name="className"
+                                  value={formData.className}
+                                  onChange={handleInputChange}
+                                  placeholder="Nhập tên lớp"
+                                  className="custom-input"
+                                />
+                              </Form.Group>
+                            </Col>
+                            <Col md={6}>
+                              <Form.Group>
+                                <Form.Label className="info-label">
+                                  Chuyên ngành
+                                </Form.Label>
+                                <Form.Control
+                                  type="text"
+                                  value={
+                                    typeof student?.major === "object" &&
+                                    student.major.name
+                                      ? student.major.name
+                                      : typeof student?.major === "string"
+                                      ? student.major
+                                      : "Chưa cập nhật"
+                                  }
+                                  disabled
+                                  className="custom-input bg-light"
+                                />
+                                <Form.Text className="text-muted">
+                                  Chuyên ngành không thể thay đổi
+                                </Form.Text>
+                              </Form.Group>
+                            </Col>
+                            <Col md={12}></Col>
+                            <Col md={12}>
+                              <div className="d-flex gap-2 justify-content-end mt-3">
+                                <Button
+                                  variant="secondary"
+                                  onClick={handleCancel}
+                                  disabled={saving}
+                                >
+                                  Hủy
+                                </Button>
+                                <Button
+                                  variant="primary"
+                                  type="submit"
+                                  disabled={saving}
+                                  className="bg-primary-custom"
+                                >
+                                  {saving ? "Đang lưu..." : "Lưu thay đổi"}
+                                </Button>
+                              </div>
+                            </Col>
+                          </Row>
+                        </Form>
+                      ) : (
+                        <Row className="g-3">
+                          <Col md={6}>
+                            <div className="info-item">
+                              <label className="info-label">Họ và tên</label>
+                              <p className="info-value">
+                                {user?.fullName || "Chưa cập nhật"}
+                              </p>
+                            </div>
+                          </Col>
+                          <Col md={6}>
+                            <div className="info-item">
+                              <label className="info-label">Email</label>
+                              <p className="info-value">
+                                {user?.email || "Chưa cập nhật"}
+                              </p>
+                            </div>
+                          </Col>
+                          <Col md={6}>
+                            <div className="info-item">
+                              <label className="info-label">
+                                Số điện thoại
+                              </label>
+                              <p className="info-value">
+                                {user?.phoneNumber ||
+                                  student?.phoneNumber ||
+                                  "Chưa cập nhật"}
+                              </p>
+                            </div>
+                          </Col>
+                          <Col md={6}>
+                            <div className="info-item">
+                              <label className="info-label">
+                                Mã số sinh viên
+                              </label>
+                              <p className="info-value">
+                                {student?.studentCode
+                                  ? student.studentCode
+                                  : "Chưa cập nhật"}
+                              </p>
+                            </div>
+                          </Col>
+                          <Col md={6}>
+                            <div className="info-item">
+                              <label className="info-label">Chuyên ngành</label>
+                              <p className="info-value">
+                                {student?.major
+                                  ? typeof student.major === "object" &&
+                                    student.major?.name
+                                    ? student.major.name
+                                    : typeof student.major === "string" &&
+                                      student.major
+                                    ? student.major
+                                    : "Chưa cập nhật"
+                                  : "Chưa cập nhật"}
+                              </p>
+                              {student?.major &&
+                                typeof student.major === "object" &&
+                                student.major?.description && (
+                                  <small className="text-secondary d-block mt-1">
+                                    {student.major.description}
+                                  </small>
+                                )}
+                            </div>
+                          </Col>
+                          <Col md={6}>
+                            <div className="info-item">
+                              <label className="info-label">Ngày bắt đầu</label>
+                              <p className="info-value">
+                                {student?.startDate
+                                  ? formatDate(student.startDate)
+                                  : "Chưa cập nhật"}
+                              </p>
+                            </div>
+                          </Col>
+                          <Col md={12}></Col>
+                        </Row>
+                      )}
+                    </Card.Body>
+                  </Card>
+                </Col>
 
-                {/* Profile Tab */}
-                {activeTab === 'profile' && (
-                  <>
-                <div className="d-flex justify-content-between align-items-center mb-4">
-                  <h4 className="fw-bold text-dark mb-0">Thông tin chi tiết</h4>
-                  <Button 
-                    variant={isEditing ? "danger" : "primary"}
-                    size="sm"
-                    onClick={() => {
-                      if (isEditing) {
-                        setFormData(user);
-                      }
-                      setIsEditing(!isEditing);
-                    }}
-                    className="bg-primary-custom border-0"
-                  >
-                    {isEditing ? 'Hủy' : 'Chỉnh sửa'}
-                  </Button>
-                </div>
-
-                <Form>
-                  <Row className="mb-3">
-                    <Form.Group className="col-md-6">
-                      <Form.Label className="fw-bold text-dark">Họ và tên</Form.Label>
-                      <Form.Control
-                        type="text"
-                        name="fullName"
-                        value={formData.fullName || ''}
-                        onChange={handleChange}
-                        disabled={!isEditing}
-                      />
-                    </Form.Group>
-                    <Form.Group className="col-md-6">
-                      <Form.Label className="fw-bold text-dark">Email</Form.Label>
-                      <Form.Control
-                        type="email"
-                        name="email"
-                        value={formData.email || ''}
-                        onChange={handleChange}
-                        disabled={true}
-                      />
-                    </Form.Group>
-                  </Row>
-
-                  <Row className="mb-3">
-                    <Form.Group className="col-md-6">
-                      <Form.Label className="fw-bold text-dark">MSSV</Form.Label>
-                      <Form.Control
-                        type="text"
-                        name="studentId"
-                        value={formData.studentId || ''}
-                        onChange={handleChange}
-                        disabled={true}
-                      />
-                    </Form.Group>
-                    <Form.Group className="col-md-6">
-                      <Form.Label className="fw-bold text-dark">Khoa</Form.Label>
-                      <Form.Control
-                        type="text"
-                        name="department"
-                        value={formData.department || ''}
-                        onChange={handleChange}
-                        disabled={true}
-                      />
-                    </Form.Group>
-                  </Row>
-
-                  <Row className="mb-3">
-                    <Form.Group className="col-md-6">
-                      <Form.Label className="fw-bold text-dark">Ngày sinh</Form.Label>
-                      <Form.Control
-                        type="date"
-                        name="dateOfBirth"
-                        value={formData.dateOfBirth ? new Date(formData.dateOfBirth).toISOString().split('T')[0] : ''}
-                        onChange={handleChange}
-                        disabled={!isEditing}
-                      />
-                    </Form.Group>
-                    <Form.Group className="col-md-6">
-                      <Form.Label className="fw-bold text-dark">Giới tính</Form.Label>
-                      <Form.Select
-                        name="gender"
-                        value={formData.gender || ''}
-                        onChange={handleChange}
-                        disabled={!isEditing}
-                      >
-                        <option value="">Chọn giới tính</option>
-                        <option value="male">Nam</option>
-                        <option value="female">Nữ</option>
-                        <option value="other">Khác</option>
-                      </Form.Select>
-                    </Form.Group>
-                  </Row>
-
-                  <Row className="mb-3">
-                    <Form.Group className="col-md-6">
-                      <Form.Label className="fw-bold text-dark">Số điện thoại</Form.Label>
-                      <Form.Control
-                        type="tel"
-                        name="phoneNumber"
-                        value={formData.phoneNumber || ''}
-                        onChange={handleChange}
-                        disabled={!isEditing}
-                      />
-                    </Form.Group>
-                    <Form.Group className="col-md-6">
-                      <Form.Label className="fw-bold text-dark">Địa chỉ</Form.Label>
-                      <Form.Control
-                        type="text"
-                        name="address"
-                        value={formData.address || ''}
-                        onChange={handleChange}
-                        disabled={!isEditing}
-                      />
-                    </Form.Group>
-                  </Row>
-
-                  <hr />
-
-                  <h5 className="fw-bold text-dark mb-3">Thông tin liên hệ khẩn cấp</h5>
-
-                  <Row className="mb-3">
-                    <Form.Group className="col-md-6">
-                      <Form.Label className="fw-bold text-dark">Tên</Form.Label>
-                      <Form.Control
-                        type="text"
-                        value={formData.emergencyContact?.name || ''}
-                        onChange={(e) => setFormData(prev => ({
-                          ...prev,
-                          emergencyContact: { ...prev.emergencyContact, name: e.target.value }
-                        }))}
-                        disabled={!isEditing}
-                      />
-                    </Form.Group>
-                    <Form.Group className="col-md-6">
-                      <Form.Label className="fw-bold text-dark">Mối quan hệ</Form.Label>
-                      <Form.Control
-                        type="text"
-                        value={formData.emergencyContact?.relationship || ''}
-                        onChange={(e) => setFormData(prev => ({
-                          ...prev,
-                          emergencyContact: { ...prev.emergencyContact, relationship: e.target.value }
-                        }))}
-                        disabled={!isEditing}
-                      />
-                    </Form.Group>
-                  </Row>
-
-                  <Row className="mb-3">
-                    <Form.Group className="col-md-6">
-                      <Form.Label className="fw-bold text-dark">Số điện thoại</Form.Label>
-                      <Form.Control
-                        type="tel"
-                        value={formData.emergencyContact?.phoneNumber || ''}
-                        onChange={(e) => setFormData(prev => ({
-                          ...prev,
-                          emergencyContact: { ...prev.emergencyContact, phoneNumber: e.target.value }
-                        }))}
-                        disabled={!isEditing}
-                      />
-                    </Form.Group>
-                  </Row>
-
-                  {isEditing && (
-                    <div className="d-flex gap-2 mt-4">
-                      <Button 
-                        variant="primary"
-                        className="bg-primary-custom border-0"
-                        onClick={handleSave}
-                      >
-                        Lưu thay đổi
-                      </Button>
-                      <Button 
-                        variant="secondary"
-                        onClick={() => {
-                          setFormData(user);
-                          setIsEditing(false);
-                        }}
-                      >
-                        Hủy
-                      </Button>
-                    </div>
-                  )}
-                </Form>
-                  </>
+                {/* Thông tin Lab */}
+                {student?.lab && (
+                  <Col md={12}>
+                    <Card className="custom-card border-0">
+                      <Card.Header className="bg-white border-0 pb-0 pt-4 px-4">
+                        <h4 className="h5 fw-bold text-dark mb-0">
+                          <span
+                            className="material-symbols-outlined me-2 text-primary-custom"
+                            style={{
+                              verticalAlign: "middle",
+                              fontSize: "24px",
+                            }}
+                          >
+                            science
+                          </span>
+                          Thông tin Lab
+                        </h4>
+                      </Card.Header>
+                      <Card.Body className="p-4">
+                        <Row className="g-3">
+                          <Col md={6}>
+                            <div className="info-item">
+                              <label className="info-label">Tên Lab</label>
+                              <p className="info-value">
+                                {typeof student.lab === "object"
+                                  ? student.lab.name
+                                  : "Chưa cập nhật"}
+                              </p>
+                            </div>
+                          </Col>
+                          <Col md={6}>
+                            <div className="info-item">
+                              <label className="info-label">Mã Lab</label>
+                              <p className="info-value">
+                                {typeof student.lab === "object"
+                                  ? student.lab.code
+                                  : "Chưa cập nhật"}
+                              </p>
+                            </div>
+                          </Col>
+                          <Col md={6}>
+                            <div className="info-item">
+                              <label className="info-label">Trạng thái</label>
+                              <p className="info-value">
+                                <span
+                                  className={`badge ${
+                                    student.labStatus === "approved"
+                                      ? "bg-success"
+                                      : student.labStatus === "pending"
+                                      ? "bg-warning"
+                                      : student.labStatus === "rejected"
+                                      ? "bg-danger"
+                                      : "bg-secondary"
+                                  } px-3 py-2`}
+                                >
+                                  {student.labStatus === "approved"
+                                    ? "Đã duyệt"
+                                    : student.labStatus === "pending"
+                                    ? "Đang chờ"
+                                    : student.labStatus === "rejected"
+                                    ? "Từ chối"
+                                    : "Chưa tham gia"}
+                                </span>
+                              </p>
+                            </div>
+                          </Col>
+                        </Row>
+                      </Card.Body>
+                    </Card>
+                  </Col>
                 )}
 
-                {/* Password Tab */}
-                {activeTab === 'password' && (
-                  <div>
-                    <h4 className="fw-bold text-dark mb-4">Thay đổi mật khẩu</h4>
-                    <Form>
-                      <Form.Group className="mb-3">
-                        <Form.Label className="fw-bold text-dark">Mật khẩu hiện tại</Form.Label>
-                        <div className="input-group">
-                          <Form.Control
-                            type={showPasswords.currentPassword ? 'text' : 'password'}
-                            name="currentPassword"
-                            value={passwordData.currentPassword}
-                            onChange={handlePasswordChange}
-                            placeholder="Nhập mật khẩu hiện tại"
-                          />
-                          <Button
-                            variant="outline-secondary"
-                            onClick={() => setShowPasswords(prev => ({
-                              ...prev,
-                              currentPassword: !prev.currentPassword
-                            }))}
-                            style={{ borderColor: '#dee2e6' }}
-                          >
-                            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
-                              {showPasswords.currentPassword ? 'visibility_off' : 'visibility'}
-                            </span>
-                          </Button>
-                        </div>
-                      </Form.Group>
-
-                      <Form.Group className="mb-3">
-                        <Form.Label className="fw-bold text-dark">Mật khẩu mới</Form.Label>
-                        <div className="input-group">
-                          <Form.Control
-                            type={showPasswords.newPassword ? 'text' : 'password'}
-                            name="newPassword"
-                            value={passwordData.newPassword}
-                            onChange={handlePasswordChange}
-                            placeholder="Nhập mật khẩu mới"
-                          />
-                          <Button
-                            variant="outline-secondary"
-                            onClick={() => setShowPasswords(prev => ({
-                              ...prev,
-                              newPassword: !prev.newPassword
-                            }))}
-                            style={{ borderColor: '#dee2e6' }}
-                          >
-                            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
-                              {showPasswords.newPassword ? 'visibility_off' : 'visibility'}
-                            </span>
-                          </Button>
-                        </div>
-                      </Form.Group>
-
-                      <Form.Group className="mb-4">
-                        <Form.Label className="fw-bold text-dark">Xác nhận mật khẩu mới</Form.Label>
-                        <div className="input-group">
-                          <Form.Control
-                            type={showPasswords.confirmPassword ? 'text' : 'password'}
-                            name="confirmPassword"
-                            value={passwordData.confirmPassword}
-                            onChange={handlePasswordChange}
-                            placeholder="Xác nhận mật khẩu mới"
-                          />
-                          <Button
-                            variant="outline-secondary"
-                            onClick={() => setShowPasswords(prev => ({
-                              ...prev,
-                              confirmPassword: !prev.confirmPassword
-                            }))}
-                            style={{ borderColor: '#dee2e6' }}
-                          >
-                            <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
-                              {showPasswords.confirmPassword ? 'visibility_off' : 'visibility'}
-                            </span>
-                          </Button>
-                        </div>
-                      </Form.Group>
-
-                      <div className="d-flex gap-2">
-                        <Button 
-                          variant="primary"
-                          className="bg-primary-custom border-0"
-                          onClick={handleChangePassword}
+                {/* Thông tin tài khoản */}
+                <Col md={12}>
+                  <Card className="custom-card border-0">
+                    <Card.Header className="bg-white border-0 pb-0 pt-4 px-4">
+                      <h4 className="h5 fw-bold text-dark mb-0">
+                        <span
+                          className="material-symbols-outlined me-2 text-primary-custom"
+                          style={{ verticalAlign: "middle", fontSize: "24px" }}
                         >
-                          Thay đổi mật khẩu
-                        </Button>
-                        <Button 
-                          variant="secondary"
-                          onClick={() => setPasswordData({
-                            currentPassword: '',
-                            newPassword: '',
-                            confirmPassword: ''
-                          })}
-                        >
-                          Hủy
-                        </Button>
-                      </div>
-                    </Form>
-                  </div>
-                )}
-              </Card>
+                          account_circle
+                        </span>
+                        Thông tin tài khoản
+                      </h4>
+                    </Card.Header>
+                    <Card.Body className="p-4">
+                      <Row className="g-3">
+                        <Col md={6}>
+                          <div className="info-item">
+                            <label className="info-label">Vai trò</label>
+                            <p className="info-value">
+                              <span className="badge bg-primary-custom px-3 py-2">
+                                {user?.role === "student"
+                                  ? "Sinh viên"
+                                  : user?.role === "admin"
+                                  ? "Quản trị viên"
+                                  : user?.role === "mentor"
+                                  ? "Mentor"
+                                  : "Chưa xác định"}
+                              </span>
+                            </p>
+                          </div>
+                        </Col>
+                        <Col md={6}>
+                          <div className="info-item">
+                            <label className="info-label">
+                              Ngày tạo tài khoản
+                            </label>
+                            <p className="info-value">
+                              {formatDate(user?.createdAt)}
+                            </p>
+                          </div>
+                        </Col>
+                        <Col md={6}>
+                          <div className="info-item">
+                            <label className="info-label">
+                              Cập nhật lần cuối
+                            </label>
+                            <p className="info-value">
+                              {formatDate(user?.updatedAt)}
+                            </p>
+                          </div>
+                        </Col>
+                        <Col md={12}>
+                          <div className="d-flex justify-content-end mt-3">
+                            <Button
+                              variant="outline-primary"
+                              onClick={() => setShowPasswordModal(true)}
+                            >
+                              <span
+                                className="material-symbols-outlined me-2"
+                                style={{
+                                  verticalAlign: "middle",
+                                  fontSize: "20px",
+                                }}
+                              >
+                                lock
+                              </span>
+                              Đổi mật khẩu
+                            </Button>
+                          </div>
+                        </Col>
+                      </Row>
+                    </Card.Body>
+                  </Card>
+                </Col>
+              </Row>
             </Col>
           </Row>
         </Container>
       </main>
+
+      {/* Change Password Modal */}
+      <Modal
+        show={showPasswordModal}
+        onHide={() => {
+          setShowPasswordModal(false);
+          setPasswordData({
+            currentPassword: "",
+            newPassword: "",
+            confirmPassword: "",
+          });
+          setError("");
+        }}
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Đổi mật khẩu</Modal.Title>
+        </Modal.Header>
+        <Form onSubmit={handleChangePassword}>
+          <Modal.Body>
+            {error && (
+              <Alert variant="danger" dismissible onClose={() => setError("")}>
+                {error}
+              </Alert>
+            )}
+            {success && (
+              <Alert
+                variant="success"
+                dismissible
+                onClose={() => setSuccess("")}
+              >
+                {success}
+              </Alert>
+            )}
+            <Form.Group className="mb-3">
+              <Form.Label>Mật khẩu hiện tại *</Form.Label>
+              <Form.Control
+                type="password"
+                name="currentPassword"
+                value={passwordData.currentPassword}
+                onChange={handlePasswordChange}
+                required
+                placeholder="Nhập mật khẩu hiện tại"
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Mật khẩu mới *</Form.Label>
+              <Form.Control
+                type="password"
+                name="newPassword"
+                value={passwordData.newPassword}
+                onChange={handlePasswordChange}
+                required
+                minLength={6}
+                placeholder="Nhập mật khẩu mới (tối thiểu 6 ký tự)"
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Xác nhận mật khẩu mới *</Form.Label>
+              <Form.Control
+                type="password"
+                name="confirmPassword"
+                value={passwordData.confirmPassword}
+                onChange={handlePasswordChange}
+                required
+                minLength={6}
+                placeholder="Nhập lại mật khẩu mới"
+              />
+            </Form.Group>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setShowPasswordModal(false);
+                setPasswordData({
+                  currentPassword: "",
+                  newPassword: "",
+                  confirmPassword: "",
+                });
+                setError("");
+              }}
+              disabled={changingPassword}
+            >
+              Hủy
+            </Button>
+            <Button variant="primary" type="submit" disabled={changingPassword}>
+              {changingPassword ? "Đang xử lý..." : "Đổi mật khẩu"}
+            </Button>
+          </Modal.Footer>
+        </Form>
+      </Modal>
     </div>
   );
 };
-
-
 
 export default StudentProfile;
