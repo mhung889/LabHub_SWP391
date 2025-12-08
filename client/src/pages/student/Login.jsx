@@ -171,14 +171,14 @@ const Login = () => {
             </Form>
 
             {/* Divider */}
-            <div className="d-flex align-items-center py-4">
+            {/* <div className="d-flex align-items-center py-4">
               <div className="flex-grow-1 border-top"></div>
               <span className="mx-3 text-secondary small">Hoặc đăng nhập với</span>
               <div className="flex-grow-1 border-top"></div>
-            </div>
+            </div> */}
 
             {/* Social Login */}
-            <Row className="g-3">
+            {/* <Row className="g-3">
               <Col xs={6}>
                 <Button variant="light" className="btn-social w-100" disabled={loading}>
                   <svg className="h-5 w-5" style={{ width: '20px', height: '20px' }} fill="none" viewBox="0 0 24 24">
@@ -203,7 +203,7 @@ const Login = () => {
                   GitHub
                 </Button>
               </Col>
-            </Row>
+            </Row> */}
           </div>
         </Col>
 

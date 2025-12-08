@@ -21,17 +21,17 @@ exports.getLabs = async (req, res) => {
   try {
     const { status } = req.query;
     const query = {};
-    
+
     if (status && (status === 'active' || status === 'inactive')) {
       query.status = status;
     }
-    
+
     const labs = await LabModel.find(query)
       .select('name code description major status mentor')
       .populate('mentor', 'fullName email')
       .sort({ createdAt: -1 })
       .lean();
-    
+
     return res.status(200).json({
       labs: labs || [],
     });
@@ -129,10 +129,23 @@ exports.editLab = async (req, res) => {
     if (endTime !== undefined) lab.endTime = endTime;
     if (total !== undefined) lab.total = total;
     if (status !== undefined) lab.status = status;
-    if (major !== undefined) lab.major = major;
-    if (mentor !== undefined) lab.mentor = mentor;
 
-    // Nếu cho phép sửa code thì nhớ check trùng
+    if (major !== undefined) {
+      if (major === '' || major === null) {
+        lab.major = null;
+      } else {
+        lab.major = major;
+      }
+    }
+
+    if (mentor !== undefined) {
+      if (mentor === '' || mentor === null) {
+        lab.mentor = null;
+      } else {
+        lab.mentor = mentor;
+      }
+    }
+
     // if (code !== undefined) {
     //   const existed = await Lab.findOne({ code, _id: { $ne: id } });
     //   if (existed) {
@@ -160,12 +173,6 @@ exports.deleteLabById = async (req, res) => {
     const { id } = req.params;
 
     const lab = await LabModel.findById(id);
-    if (!lab) {
-      return res.status(404).json({
-        message: 'Lab không tồn tại',
-      });
-    }
-
     if (!lab) {
       return res.status(404).json({
         message: 'Lab không tồn tại',
@@ -260,7 +267,15 @@ exports.getStudentsByLabId = async (req, res) => {
       .populate('major', 'name code -_id')
       .populate('lab', '');
 
-    return res.status(200).json(students);
+    const availableFilter = { lab: null };
+    const availableStudents = await StudentModel.find(availableFilter)
+      .populate('user', '')
+      .populate('major', 'name code -_id');
+
+    return res.status(200).json({
+      students,
+      availableStudents,
+    });
   } catch (error) {
     console.error('Delete lab error:', error);
     return res.status(500).json({

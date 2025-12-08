@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { X } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function CreateLabModal({
   isOpen,
@@ -68,32 +69,39 @@ export default function CreateLabModal({
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    setSubmitted(true); 
+    setSubmitted(true);
 
     const validationErrors = validate();
     setErrors(validationErrors);
 
-    if (Object.keys(validationErrors).length > 0) return;
+    if (Object.keys(validationErrors).length > 0) {
+      return;
+    }
 
-    // submit thành công
-    onSubmit(formData);
+    // submit success
+    try {
+      onSubmit(formData);
+      toast.success('Tạo lab thành công!');
 
-    // reset form
-    setFormData({
-      name: '',
-      code: '',
-      startTime: '08:00',
-      endTime: '17:00',
-      total: 30,
-      major: '',
-      mentor: '',
-      description: '',
-      status: 'active',
-    });
+      // reset form
+      setFormData({
+        name: '',
+        code: '',
+        startTime: '08:00',
+        endTime: '17:00',
+        total: 30,
+        major: '',
+        mentor: '',
+        description: '',
+        status: 'active',
+      });
 
-    setErrors({});
-    setSubmitted(false); // reset trạng thái submit
-    onClose();
+      setErrors({});
+      setSubmitted(false);
+      onClose();
+    } catch (error) {
+      toast.error('Có lỗi xảy ra, vui lòng thử lại!');
+    }
   };
 
   if (!isOpen) return null;
@@ -101,7 +109,6 @@ export default function CreateLabModal({
   return (
     <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4'>
       <div className='max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg border border-border bg-background'>
-        
         {/* Header */}
         <div className='sticky top-0 flex items-center justify-between border-b border-border bg-background p-6'>
           <h2 className='text-xl font-bold text-foreground'>Tạo Lab Mới</h2>
@@ -116,13 +123,12 @@ export default function CreateLabModal({
 
         {/* Form */}
         <form onSubmit={handleSubmit} className='space-y-6 p-6'>
-          
           {/* Row 1 */}
           <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
             {/* Name */}
             <div>
               <label className='mb-2 block text-sm font-medium text-foreground'>
-                Tên Lab 
+                Tên Lab
               </label>
               <Input
                 name='name'
@@ -134,7 +140,6 @@ export default function CreateLabModal({
                 <p className='mt-1 text-xs text-destructive'>{errors.name}</p>
               )}
             </div>
-          
           </div>
 
           {/* Row 2: Start - End time */}
@@ -167,7 +172,7 @@ export default function CreateLabModal({
           {/* Row 3: Total */}
           <div>
             <label className='mb-2 block text-sm font-medium text-foreground'>
-              Sức Chứa 
+              Sức Chứa
             </label>
             <Input
               name='total'
@@ -183,7 +188,7 @@ export default function CreateLabModal({
           <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
             <div>
               <label className='mb-2 block text-sm font-medium text-foreground'>
-               Chuyên Ngành 
+                Chuyên Ngành
               </label>
               <select
                 name='major'
@@ -205,7 +210,7 @@ export default function CreateLabModal({
 
             <div>
               <label className='mb-2 block text-sm font-medium text-foreground'>
-                Mentor 
+                Mentor
               </label>
               <select
                 name='mentor'
@@ -214,6 +219,7 @@ export default function CreateLabModal({
                 className='w-full rounded-lg border border-border bg-background px-3 py-2'
               >
                 <option value=''>-- Chọn mentor --</option>
+              {console.log(mentors)}
                 {mentors.map((m) => (
                   <option key={m._id} value={m._id}>
                     {m.fullName}

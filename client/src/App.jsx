@@ -15,7 +15,7 @@ import AdminStudentsPage from "./pages/admin/AdminStudentsPage"
 function App() {
   return (
     <>
-      <Toaster />
+      <Toaster duration={1500}/>
 
       <BrowserRouter>
         <Routes>

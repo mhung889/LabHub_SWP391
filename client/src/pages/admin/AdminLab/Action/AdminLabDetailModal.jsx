@@ -1,89 +1,152 @@
-// import { Card } from "@/components/ui/card"
-// import { Button } from "@/components/ui/button"
-// import { X, CheckCircle, XCircle, Clock } from "lucide-react"
+import { X } from 'lucide-react';
 
-// export default function AdminLabDetailModal({ lab, onClose }) {
-//   const statusConfig = {
-//     pending: { icon: Clock, color: "text-yellow-600", bg: "bg-yellow-500/10", label: "Chờ Duyệt" },
-//     approved: { icon: CheckCircle, color: "text-emerald-600", bg: "bg-emerald-500/10", label: "Duyệt" },
-//     rejected: { icon: XCircle, color: "text-red-600", bg: "bg-red-500/10", label: "Từ Chối" },
-//   }
+export default function AdminLabDetailModal({ isOpen, onClose, lab }) {
+  if (!isOpen || !lab) return null;
 
-//   return (
-//     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-//       <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-//         <div className="sticky top-0 bg-card border-b border-border p-6 flex items-center justify-between">
-//           <div>
-//             <h2 className="text-2xl font-bold text-foreground">{lab.name}</h2>
-//             <p className="text-sm text-muted-foreground mt-1">Mentor: {lab.mentor}</p>
-//           </div>
-//           <button
-//             onClick={onClose}
-//             className="p-2 hover:bg-muted rounded-lg transition-colors"
-//           >
-//             <X className="w-5 h-5 text-foreground" />
-//           </button>
-//         </div>
+  const getStatusLabel = (status) => {
+    if (status === 'active') return 'Active';
+    if (status === 'inactive') return 'InActive';
+    return 'Không rõ';
+  };
 
-//         <div className="p-6 space-y-6">
-//           <div>
-//             <h3 className="text-lg font-semibold text-foreground mb-2">Mô Tả</h3>
-//             <p className="text-muted-foreground">{lab.description}</p>
-//           </div>
+  const statusColor =
+    lab.status === 'active'
+      ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
+      : 'bg-rose-100 text-rose-700 border-rose-200';
 
-//           <div>
-//             <h3 className="text-lg font-semibold text-foreground mb-3">Thông Tin Sức Chứa</h3>
-//             <div className="grid grid-cols-2 gap-4">
-//               <div className="p-4 bg-muted/50 rounded-lg">
-//                 <p className="text-sm text-muted-foreground mb-1">Sức Chứa</p>
-//                 <p className="text-2xl font-bold text-foreground">{lab.capacity}</p>
-//               </div>
-//               <div className="p-4 bg-muted/50 rounded-lg">
-//                 <p className="text-sm text-muted-foreground mb-1">Đã Tuyển</p>
-//                 <p className="text-2xl font-bold text-foreground">{lab.enrolled}</p>
-//               </div>
-//             </div>
-//           </div>
+  return (
+    <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/40'>
+      {/* Modal container */}
+      <div className='w-full max-w-2xl rounded-xl bg-background shadow-xl border border-border'>
+        {/* HEADER */}
+        <div className='flex items-center justify-between border-b border-border px-4 py-3'>
+          <div>
+            <h2 className='text-lg font-semibold text-foreground'>
+              {lab.name}
+            </h2>
+            <p className='text-sm text-muted-foreground'>
+              {lab.code ? (
+                <span className='text-sm text-muted-foreground'>
+                  Mã lớp: {lab.code}
+                </span>
+              ) : null}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className='rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-foreground'
+          >
+            <X className='h-5 w-5' />
+          </button>
+        </div>
 
-//           <div>
-//             <h3 className="text-lg font-semibold text-foreground mb-3">
-//               Danh Sách Sinh Viên ({lab.students.length})
-//             </h3>
-//             <div className="space-y-2">
-//               {lab.students.map((student) => {
-//                 const statusInfo = statusConfig[student.status]
-//                 const StatusIcon = statusInfo.icon
+        {/* BODY */}
+        <div className='max-h-[70vh] overflow-y-auto px-4 py-4 space-y-4'>
+          {/* Status badge */}
+          <div className='flex items-center gap-2 text-sm'>
+            <span className='text-muted-foreground'>Trạng thái:</span>
+            <span
+              className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium ${statusColor}`}
+            >
+              <span
+                className={`h-1.5 w-1.5 rounded-full ${
+                  lab.status === 'active' ? 'bg-emerald-500' : 'bg-rose-500'
+                }`}
+              />
+              {getStatusLabel(lab.status)}
+            </span>
+          </div>
 
-//                 return (
-//                   <div
-//                     key={student.id}
-//                     className="flex items-center justify-between p-4 bg-muted/50 rounded-lg"
-//                   >
-//                     <div className="flex-1">
-//                       <p className="font-medium text-foreground">{student.name}</p>
-//                       <p className="text-sm text-muted-foreground">{student.email}</p>
-//                     </div>
-//                     <div
-//                       className={`flex items-center gap-2 px-3 py-1 rounded-full ${statusInfo.bg}`}
-//                     >
-//                       <StatusIcon className={`w-4 h-4 ${statusInfo.color}`} />
-//                       <span className={`text-sm font-medium ${statusInfo.color}`}>
-//                         {statusInfo.label}
-//                       </span>
-//                     </div>
-//                   </div>
-//                 )
-//               })}
-//             </div>
-//           </div>
+          {/* Description FIRST */}
+          <div className='rounded-lg border border-border bg-muted/40 px-3 py-3'>
+            <p className='mb-1 text-sm font-medium text-foreground'>Mô tả</p>
+            <p className='text-sm text-muted-foreground whitespace-pre-line'>
+              {lab.description && lab.description.trim()
+                ? lab.description
+                : 'Chưa có mô tả cho lab này.'}
+            </p>
+          </div>
 
-//           <div className="flex gap-2">
-//             <Button variant="outline" className="flex-1 bg-transparent" onClick={onClose}>
-//               Đóng
-//             </Button>
-//           </div>
-//         </div>
-//       </Card>
-//     </div>
-//   )
-// }
+          {/* Info list UNDER description */}
+          <div className='grid grid-cols-1 gap-3 md:grid-cols-2 text-sm'>
+            <div className='space-y-1'>
+              <p className='text-xs font-medium uppercase text-muted-foreground'>
+                Thời gian OJT
+              </p>
+              <p className='text-foreground'>
+                {lab.startTime || '--:--'} - {lab.endTime || '--:--'}
+              </p>
+            </div>
+
+            <div className='space-y-1'>
+              <p className='text-xs font-medium uppercase text-muted-foreground'>
+                Sức chứa
+              </p>
+              <p className='text-foreground'>
+                {lab.total ?? 0} 
+              </p>
+            </div>
+
+            <div className='space-y-1'>
+              <p className='text-xs font-medium uppercase text-muted-foreground'>
+                Chuyên ngành
+              </p>
+              <p className='text-foreground'>
+                {lab.major && typeof lab.major === 'object'
+                  ? lab.major.name || lab.major.code
+                  : lab.major || 'Chưa gán chuyên ngành'}
+              </p>
+            </div>
+
+            <div className='space-y-1'>
+              <p className='text-xs font-medium uppercase text-muted-foreground'>
+                Mentor 
+              </p>
+              {lab.mentor ? (
+                <div className='text-foreground'>
+                  <p>{lab.mentor.fullName || 'Không rõ tên'}</p>
+                  {lab.mentor.email && (
+                    <p className='text-xs text-muted-foreground'>
+                      {lab.mentor.email}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <p className='text-foreground'>Chưa có mentor phụ trách</p>
+              )}
+            </div>
+          </div>
+
+          {/* Optional extra: createdAt / updatedAt nếu có */}
+          {(lab.createdAt || lab.updatedAt) && (
+            <div className='mt-2 border-t border-border pt-3 text-xs text-muted-foreground'>
+              {lab.createdAt && (
+                <p>
+                  Tạo lúc:{' '}
+                  {new Date(lab.createdAt).toLocaleString('vi-VN')}
+                </p>
+              )}
+              {lab.updatedAt && (
+                <p>
+                  Cập nhật lần cuối:{' '}
+                  {new Date(lab.updatedAt).toLocaleString('vi-VN')}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* FOOTER */}
+        <div className='flex justify-end border-t border-border px-4 py-3'>
+          <button
+            type='button'
+            onClick={onClose}
+            className='inline-flex items-center justify-center rounded-md border border-border bg-background px-4 py-1.5 text-sm font-medium text-foreground hover:bg-muted'
+          >
+            Đóng
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

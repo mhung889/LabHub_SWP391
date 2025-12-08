@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 import {
   Plus,
   Edit2,
@@ -11,13 +12,14 @@ import {
   Eye,
 } from 'lucide-react';
 
-// import AdminLabDetailModal from './Action/AdminLabDetailModal';
+import AdminLabDetailModal from './Action/AdminLabDetailModal';
 import CreateLabModal from './Action/CreateLabModal';
 import DeleteLabModal from './Action/DeleteLabModal';
 import AdminLabManageDrawer from './Action/AdminLabManageDrawer';
 
 import labApi from '@/api/labApi';
 import majorApi from '@/api/majorApi';
+import mentorApi from '@/api/mentorApi';
 
 const PAGE_LIMIT = 3;
 
@@ -39,6 +41,10 @@ export default function AdminLabsPage() {
   const [labToDelete, setLabToDelete] = useState(null);
 
   const [manageLabOpen, setManageLabOpen] = useState(false);
+
+  const [mentors, setMentors] = useState([]);
+
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
 
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState({
@@ -93,17 +99,33 @@ export default function AdminLabsPage() {
   };
 
   useEffect(() => {
-    const fetchMajors = async () => {
+    const fetchMajorsAndMentors = async () => {
       try {
-        const res = await majorApi.getAll();
-        const list = res.data?.majors || res.data?.data || res.data || [];
-        setMajors(list);
+        // Majors
+        const resMajor = await majorApi.getAll();
+        const listMajors =
+          resMajor.data?.majors || resMajor.data?.data || resMajor.data || [];
+        setMajors(listMajors);
+
+        // Mentors (active)
+        const resMentor = await mentorApi.getMentors({
+          page: 1,
+          limit: 200,
+          status: 'active',
+        });
+
+        const listMentors =
+          resMentor.data?.mentors ||
+          resMentor.data?.data ||
+          resMentor.data ||
+          [];
+        setMentors(listMentors);
       } catch (error) {
-        console.error('Load majors error:', error);
+        console.error('Load majors/mentors error:', error);
       }
     };
 
-    fetchMajors();
+    fetchMajorsAndMentors();
   }, []);
 
   useEffect(() => {
@@ -154,19 +176,30 @@ export default function AdminLabsPage() {
   };
 
   const handleDeleteLab = async (labId) => {
+    setShowDelete(false);
+    setLabToDelete(null);
+
     try {
       setLoading(true);
       setError(null);
 
       await labApi.delete(labId);
 
-      setShowDelete(false);
-      setLabToDelete(null);
+      toast.success('Xóa lab thành công!');
 
-      await fetchLabs(); // reload list
+      // reload labs
+      await fetchLabs();
     } catch (err) {
-      console.error('Delete lab error:', err);
-      setError(err.response?.data?.message || 'Xóa lab thất bại');
+      const message =
+        err.response?.data?.message ||
+        'Không thể xóa lab do đang có student hoặc mentor!';
+
+      toast.error(message);
+
+      setError(message);
+
+      // reload labs
+      await fetchLabs();
     } finally {
       setLoading(false);
     }
@@ -249,7 +282,6 @@ export default function AdminLabsPage() {
                       {lab.name}
                     </h3>
                     <p className='mt-1 text-sm text-muted-foreground'>
-                      {console.log(lab.mentor)}
                       Mentor: {lab.mentor?.fullName || ''}
                     </p>
                     <p className='text-balance text-muted-foreground'>
@@ -263,7 +295,7 @@ export default function AdminLabsPage() {
                         : 'bg-red-500/10 text-red-600'
                     }`}
                   >
-                    {lab.status === 'active' ? 'Hoạt Động' : 'Không Hoạt Động'}
+                    {lab.status === 'active' ? 'Active' : 'InActive'}
                   </span>
                 </div>
                 <p className='mb-4 text-sm text-muted-foreground'>
@@ -297,11 +329,15 @@ export default function AdminLabsPage() {
                     variant='outline'
                     size='sm'
                     className='flex-1 gap-2 bg-transparent'
-                    onClick={() => setSelectedLab(lab)}
+                    onClick={() => {
+                      setSelectedLab(lab);
+                      setIsDetailOpen(true);
+                    }}
                   >
                     <Eye className='h-4 w-4' />
                     Chi Tiết
                   </Button>
+
                   <Button
                     variant='outline'
                     size='sm'
@@ -379,11 +415,17 @@ export default function AdminLabsPage() {
         </Card>
       )}
 
+      <AdminLabDetailModal
+        isOpen={isDetailOpen}
+        onClose={() => setIsDetailOpen(false)}
+        lab={selectedLab}
+      />
+
       <CreateLabModal
         isOpen={showForm}
         onClose={() => setShowForm(false)}
         onSubmit={handleCreateLab}
-        // mentors={mentors}
+        mentors={mentors}
         majors={majors}
       />
 
@@ -398,12 +440,8 @@ export default function AdminLabsPage() {
         isOpen={manageLabOpen}
         onClose={() => setManageLabOpen(false)}
         lab={selectedLab}
-        //  onUpdateLab={handleUpdateLab} // viết hàm call labApi.update
-        //  allStudents={availableStudents} // list student để add
-        //  labStudents={studentsInLab} // list student hiện tại của lab
-        //  onAddStudent={handleAddStudentToLab}
-        //  onRemoveStudent={handleRemoveStudentFromLab}
         loading={loading}
+        onUpdated={fetchLabs} // update labs
       />
     </div>
   );
