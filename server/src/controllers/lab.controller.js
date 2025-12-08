@@ -361,6 +361,7 @@ exports.getLabAll = async (req, res) => {
       LabModel.find(filter)
         .populate('major', 'code name')
         .populate('enrolled')
+        .populate('mentor', 'fullName')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit),

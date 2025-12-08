@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import studentApi from "@/api/studentApi";
 import majorApi from "@/api/majorApi";
 import labApi from "@/api/labApi";
+import clsx from "clsx";
 
 export default function AdminStudentsPage() {
   const [students, setStudents] = useState([]);
@@ -58,7 +59,8 @@ export default function AdminStudentsPage() {
   const fetchLabs = async () => {
     try {
       const res = await labApi.getLabs();
-      setLabs(res.data || []);
+      // console.log(res);
+      setLabs(res.data.labs || []);
     } catch (err) {
       console.error("Failed to load labs:", err);
     }

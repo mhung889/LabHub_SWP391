@@ -18,42 +18,51 @@ router.get('/test', (req, res) => {
   res.json({ message: 'Mentor router is working!' });
 });
 
-router.get(
-  '/search',
-  asyncMiddleware(verifyToken),
-  roleMiddleware('admin'),
-  asyncMiddleware(searchMentors)
-);
+router.get('/search', asyncMiddleware(searchMentors));
 
-router.get(
-  '/',
-  asyncMiddleware(verifyToken),
-  roleMiddleware('admin'),
-  asyncMiddleware(getMentors)
-);
+router.get('/', asyncMiddleware(getMentors));
 
-router.get(
-  '/:id',
-  asyncMiddleware(verifyToken),
-  roleMiddleware('admin'),
-  asyncMiddleware(getMentorById)
-);
+router.get('/:id', asyncMiddleware(getMentorById));
 
-router.post(
-  '/',
-  asyncMiddleware(verifyToken),
-  roleMiddleware('admin'),
-  upload.single('image'),
-  asyncMiddleware(createMentor)
-);
+router.post('/', upload.single('image'), asyncMiddleware(createMentor));
 
-router.patch(
-  '/:id',
-  asyncMiddleware(verifyToken),
-  roleMiddleware('admin'),
-  upload.single('image'),
-  asyncMiddleware(updateMentor)
-);
+router.patch('/:id', upload.single('image'), asyncMiddleware(updateMentor));
+
+// router.get(
+//   '/search',
+//   asyncMiddleware(verifyToken),
+//   roleMiddleware('admin'),
+//   asyncMiddleware(searchMentors)
+// );
+
+// router.get(
+//   '/',
+//   asyncMiddleware(verifyToken),
+//   roleMiddleware('admin'),
+//   asyncMiddleware(getMentors)
+// );
+
+// router.get(
+//   '/:id',
+//   asyncMiddleware(verifyToken),
+//   roleMiddleware('admin'),
+//   asyncMiddleware(getMentorById)
+// );
+
+// router.post(
+//   '/',
+//   asyncMiddleware(verifyToken),
+//   roleMiddleware('admin'),
+//   upload.single('image'),
+//   asyncMiddleware(createMentor)
+// );
+
+// router.patch(
+//   '/:id',
+//   asyncMiddleware(verifyToken),
+//   roleMiddleware('admin'),
+//   upload.single('image'),
+//   asyncMiddleware(updateMentor)
+// );
 
 module.exports = router;
-

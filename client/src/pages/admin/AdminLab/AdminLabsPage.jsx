@@ -248,13 +248,10 @@ export default function AdminLabsPage() {
                     <h3 className='text-lg font-bold text-foreground'>
                       {lab.name}
                     </h3>
-                    {lab.mentor && (
-                      <p className='mt-1 text-sm text-muted-foreground'>
-                        {typeof lab.mentor === 'string'
-                          ? lab.mentor
-                          : lab.mentor?.fullName || 'Mentor'}
-                      </p>
-                    )}
+                    <p className='mt-1 text-sm text-muted-foreground'>
+                      {console.log(lab.mentor)}
+                      Mentor: {lab.mentor?.fullName || ''}
+                    </p>
                     <p className='text-balance text-muted-foreground'>
                       Chuyên ngành: {lab.major?.name || ''}
                     </p>
@@ -382,7 +379,6 @@ export default function AdminLabsPage() {
         </Card>
       )}
 
-   
       <CreateLabModal
         isOpen={showForm}
         onClose={() => setShowForm(false)}
