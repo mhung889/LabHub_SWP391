@@ -1,28 +1,36 @@
 const Student = require("../models/student-model");
 const User = require("../models/user-model");
 const bcrypt = require("bcrypt");
+const sendMail = require("../helpers/send.mail");
 
 // =====================================
-// Generate unique student code HE + 6 digits
+// Random Password (6 ký tự)
 // =====================================
-async function generateStudentCode() {
-  let code;
-  let exists = true;
+function generateRandomPassword(length = 6) {
+  const lower = "abcdefghijklmnopqrstuvwxyz";
+  const upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const numbers = "0123456789";
+  const all = lower + upper + numbers;
 
-  while (exists) {
-    const random6 = Math.floor(Math.random() * 1_000_000)
-      .toString()
-      .padStart(6, "0");
+  let password = "";
 
-    code = `HE${random6}`;
-    exists = await Student.findOne({ studentCode: code });
+  // đảm bảo gồm 3 loại ký tự
+  password += lower[Math.floor(Math.random() * lower.length)];
+  password += upper[Math.floor(Math.random() * upper.length)];
+  password += numbers[Math.floor(Math.random() * numbers.length)];
+
+  for (let i = 3; i < length; i++) {
+    password += all[Math.floor(Math.random() * all.length)];
   }
 
-  return code;
+  return password
+    .split("")
+    .sort(() => Math.random() - 0.5)
+    .join("");
 }
 
 // =====================================
-// 1️⃣ GET ALL STUDENTS
+// GET ALL STUDENTS
 // =====================================
 exports.getAllStudents = async (req, res) => {
   try {
@@ -38,7 +46,7 @@ exports.getAllStudents = async (req, res) => {
 };
 
 // =====================================
-// 2️⃣ GET ONE STUDENT
+// GET ONE STUDENT
 // =====================================
 exports.getStudentById = async (req, res) => {
   try {
@@ -54,7 +62,27 @@ exports.getStudentById = async (req, res) => {
 };
 
 // =====================================
-// 3️⃣ CREATE STUDENT (User + Student)
+// VALIDATE DOB
+// =====================================
+function validateDobOrThrow(dateOfBirth) {
+  if (!dateOfBirth) throw new Error("Date of birth is required");
+
+  const dob = new Date(dateOfBirth);
+  const today = new Date();
+
+  if (isNaN(dob.getTime())) throw new Error("Invalid date of birth");
+  if (dob > today) throw new Error("Date of birth cannot be in the future");
+
+  const age =
+    today.getFullYear() -
+    dob.getFullYear() -
+    (today < new Date(today.getFullYear(), dob.getMonth(), dob.getDate()) ? 1 : 0);
+
+  if (age < 17) throw new Error("Student must be at least 17 years old");
+}
+
+// =====================================
+// CREATE STUDENT (User + Student)
 // =====================================
 exports.createStudent = async (req, res) => {
   try {
@@ -68,20 +96,34 @@ exports.createStudent = async (req, res) => {
       emergencyContact,
       majorId,
       startDate,
+      studentCode,
     } = req.body;
 
-    // Normalize email
-    const normalizedEmail = email.trim().toLowerCase();
-
-    // 1. Check duplicate email
-    const existing = await User.findOne({ email: normalizedEmail });
-    if (existing) {
-      return res.status(400).json({ message: "Email already exists" });
+    // Validate DOB
+    try {
+      validateDobOrThrow(dateOfBirth);
+    } catch (err) {
+      return res.status(400).json({ message: err.message });
     }
 
-    // 2. Create User with default password
-    const passwordHash = await bcrypt.hash("123456", 10);
+    if (!studentCode?.trim()) {
+      return res.status(400).json({ message: "Student code is required" });
+    }
 
+    const existingCode = await Student.findOne({ studentCode });
+    if (existingCode)
+      return res.status(400).json({ message: "Student code already exists" });
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const existingUser = await User.findOne({ email: normalizedEmail });
+    if (existingUser)
+      return res.status(400).json({ message: "Email already exists" });
+
+    // Generate password
+    const plainPassword = generateRandomPassword(6);
+    const passwordHash = await bcrypt.hash(plainPassword, 10);
+
+    // Create User
     const user = await User.create({
       fullName,
       email: normalizedEmail,
@@ -95,10 +137,7 @@ exports.createStudent = async (req, res) => {
       status: "active",
     });
 
-    // 3. Auto generate student code
-    const studentCode = await generateStudentCode();
-
-    // 4. Create Student profile
+    // Create Student
     const student = await Student.create({
       user: user._id,
       studentCode,
@@ -108,8 +147,30 @@ exports.createStudent = async (req, res) => {
       lab: null,
     });
 
+    // =====================================
+    // SEND EMAIL WITH PASSWORD
+    // =====================================
+    const senderName = process.env.EMAIL_NAME || "LabHub Support";
+
+    await sendMail({
+      to: normalizedEmail,
+      subject: "Tài khoản LabHub của bạn đã được tạo",
+      html: `
+        <h2>Chào ${fullName},</h2>
+        <p>Tài khoản LabHub của bạn đã được tạo thành công.</p>
+
+        <p><b>Email đăng nhập:</b> ${normalizedEmail}</p>
+        <p><b>Mật khẩu tạm thời:</b> <strong>${plainPassword}</strong></p>
+
+        <hr/>
+        <p>Vui lòng đăng nhập và đổi mật khẩu ngay sau khi vào hệ thống.</p>
+        <br/>
+        <p>Trân trọng,<br/>${senderName}</p>
+      `,
+    });
+
     return res.status(201).json({
-      message: "Student created successfully",
+      message: "Student created successfully (Password emailed)",
       student,
     });
 
@@ -119,7 +180,7 @@ exports.createStudent = async (req, res) => {
 };
 
 // =====================================
-// 4️⃣ UPDATE STUDENT (User + Student)
+// UPDATE STUDENT
 // =====================================
 exports.updateStudent = async (req, res) => {
   try {
@@ -138,23 +199,28 @@ exports.updateStudent = async (req, res) => {
 
     const { id } = req.params;
 
-    // 1. Find student
+    if (dateOfBirth) {
+      try {
+        validateDobOrThrow(dateOfBirth);
+      } catch (err) {
+        return res.status(400).json({ message: err.message });
+      }
+    }
+
     const student = await Student.findById(id).populate("user");
     if (!student)
       return res.status(404).json({ message: "Student not found" });
 
-    // 2. Check duplicate email
     if (email && email !== student.user.email) {
       const normalizedEmail = email.trim().toLowerCase();
-      const existingUser = await User.findOne({ email: normalizedEmail });
 
+      const existingUser = await User.findOne({ email: normalizedEmail });
       if (existingUser)
         return res.status(400).json({ message: "Email already exists" });
 
       student.user.email = normalizedEmail;
     }
 
-    // 3. Update User info
     if (fullName) student.user.fullName = fullName;
     if (phoneNumber) student.user.phoneNumber = phoneNumber;
     if (gender) student.user.gender = gender;
@@ -175,14 +241,19 @@ exports.updateStudent = async (req, res) => {
 
     await student.user.save();
 
-    // 4. Update Student info
     if (majorId) student.major = majorId;
     if (startDate) student.startDate = startDate;
-    if (studentCode) student.studentCode = studentCode;
+
+    if (studentCode && studentCode !== student.studentCode) {
+      const exists = await Student.findOne({ studentCode });
+      if (exists)
+        return res.status(400).json({ message: "Student code already exists" });
+
+      student.studentCode = studentCode;
+    }
 
     await student.save();
 
-    // 5. Return updated with populate
     const updated = await Student.findById(id)
       .populate("user")
       .populate("lab")
@@ -199,7 +270,7 @@ exports.updateStudent = async (req, res) => {
 };
 
 // =====================================
-// 5️⃣ DELETE STUDENT
+// DELETE STUDENT
 // =====================================
 exports.deleteStudent = async (req, res) => {
   try {

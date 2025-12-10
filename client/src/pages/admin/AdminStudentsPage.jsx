@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import studentApi from "@/api/studentApi";
 import majorApi from "@/api/majorApi";
 import labApi from "@/api/labApi";
-import clsx from "clsx";
 
 export default function AdminStudentsPage() {
   const [students, setStudents] = useState([]);
@@ -20,6 +19,7 @@ export default function AdminStudentsPage() {
   const detailModalRef = useRef(null);
 
   const [formData, setFormData] = useState({
+    studentCode: "",
     name: "",
     email: "",
     phone: "",
@@ -59,7 +59,6 @@ export default function AdminStudentsPage() {
   const fetchLabs = async () => {
     try {
       const res = await labApi.getLabs();
-      // console.log(res);
       setLabs(res.data.labs || []);
     } catch (err) {
       console.error("Failed to load labs:", err);
@@ -119,6 +118,9 @@ export default function AdminStudentsPage() {
   const validateForm = () => {
     let newErrors = {};
 
+    if (!formData.studentCode.trim())
+      newErrors.studentCode = "Mã sinh viên không được để trống";
+
     if (!formData.name.trim()) newErrors.name = "Họ tên không được để trống";
 
     if (!/^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/.test(formData.email))
@@ -129,7 +131,30 @@ export default function AdminStudentsPage() {
 
     if (!formData.gender) newErrors.gender = "Hãy chọn giới tính";
 
-    if (!formData.dob) newErrors.dob = "Hãy chọn ngày sinh";
+    // DOB VALIDATION
+    if (!formData.dob) {
+      newErrors.dob = "Hãy chọn ngày sinh";
+    } else {
+      const dobDate = new Date(formData.dob);
+      const today = new Date();
+
+      if (isNaN(dobDate.getTime())) {
+        newErrors.dob = "Ngày sinh không hợp lệ";
+      } else if (dobDate > today) {
+        newErrors.dob = "Ngày sinh không được ở tương lai";
+      } else {
+        const age =
+          today.getFullYear() -
+          dobDate.getFullYear() -
+          (today < new Date(today.getFullYear(), dobDate.getMonth(), dobDate.getDate())
+            ? 1
+            : 0);
+
+        if (age < 17) {
+          newErrors.dob = "Sinh viên phải đủ 17 tuổi";
+        }
+      }
+    }
 
     if (!formData.address.trim())
       newErrors.address = "Hãy nhập địa chỉ";
@@ -140,8 +165,10 @@ export default function AdminStudentsPage() {
     if (!formData.startDate)
       newErrors.startDate = "Hãy chọn ngày bắt đầu";
 
-    if (formData.emergencyPhone && 
-        !/^(0[3|5|7|8|9])[0-9]{8}$/.test(formData.emergencyPhone))
+    if (
+      formData.emergencyPhone &&
+      !/^(0[3|5|7|8|9])[0-9]{8}$/.test(formData.emergencyPhone)
+    )
       newErrors.emergencyPhone = "Số khẩn cấp không hợp lệ";
 
     setErrors(newErrors);
@@ -155,6 +182,7 @@ export default function AdminStudentsPage() {
     setEditingStudent(null);
     setErrors({});
     setFormData({
+      studentCode: "",
       name: "",
       email: "",
       phone: "",
@@ -177,6 +205,7 @@ export default function AdminStudentsPage() {
     setEditingStudent(student);
     setErrors({});
     setFormData({
+      studentCode: student.studentCode || "",
       name: student.user?.fullName || "",
       email: student.user?.email || "",
       phone: student.user?.phoneNumber || "",
@@ -201,6 +230,7 @@ export default function AdminStudentsPage() {
     if (!validateForm()) return;
 
     const payload = {
+      studentCode: formData.studentCode,
       fullName: formData.name,
       email: formData.email.trim(),
       phoneNumber: formData.phone,
@@ -260,7 +290,6 @@ export default function AdminStudentsPage() {
 
       {/* FILTER ROW */}
       <div className="row mb-4">
-
         <div className="col-md-4">
           <label className="form-label fw-semibold">Tìm kiếm</label>
           <input
@@ -303,7 +332,6 @@ export default function AdminStudentsPage() {
             ))}
           </select>
         </div>
-
       </div>
 
       {/* TABLE */}
@@ -388,6 +416,19 @@ export default function AdminStudentsPage() {
 
             <div className="modal-body">
               <div className="row g-3">
+
+                {/* STUDENT CODE */}
+                <div className="col-md-6">
+                  <label className="form-label">Mã sinh viên</label>
+                  <input
+                    className={`form-control ${errors.studentCode ? "is-invalid" : ""}`}
+                    value={formData.studentCode}
+                    onChange={(e) =>
+                      setFormData({ ...formData, studentCode: e.target.value })
+                    }
+                  />
+                  <div className="invalid-feedback">{errors.studentCode}</div>
+                </div>
 
                 {/* NAME */}
                 <div className="col-md-6">
@@ -574,7 +615,6 @@ export default function AdminStudentsPage() {
               {selectedStudent ? (
                 <div className="row g-3">
 
-                  {/* ẢNH */}
                   <div className="col-12 text-center mb-3">
                     <img
                       src={selectedStudent.user?.image}
@@ -588,31 +628,26 @@ export default function AdminStudentsPage() {
                     />
                   </div>
 
-                  {/* HỌ TÊN */}
                   <div className="col-md-6">
                     <label className="fw-bold">Họ tên:</label>
                     <div>{selectedStudent.user?.fullName}</div>
                   </div>
 
-                  {/* EMAIL */}
                   <div className="col-md-6">
                     <label className="fw-bold">Email:</label>
                     <div>{selectedStudent.user?.email}</div>
                   </div>
 
-                  {/* PHONE */}
                   <div className="col-md-6">
                     <label className="fw-bold">Số điện thoại:</label>
                     <div>{selectedStudent.user?.phoneNumber}</div>
                   </div>
 
-                  {/* GIỚI TÍNH */}
                   <div className="col-md-6">
                     <label className="fw-bold">Giới tính:</label>
                     <div>{selectedStudent.user?.gender}</div>
                   </div>
 
-                  {/* NGÀY SINH */}
                   <div className="col-md-6">
                     <label className="fw-bold">Ngày sinh:</label>
                     <div>
@@ -622,31 +657,26 @@ export default function AdminStudentsPage() {
                     </div>
                   </div>
 
-                  {/* ĐỊA CHỈ */}
                   <div className="col-md-6">
                     <label className="fw-bold">Địa chỉ:</label>
                     <div>{selectedStudent.user?.address}</div>
                   </div>
 
-                  {/* MÃ SV */}
                   <div className="col-md-6">
                     <label className="fw-bold">Mã sinh viên:</label>
                     <div>{selectedStudent.studentCode}</div>
                   </div>
 
-                  {/* NGÀNH */}
                   <div className="col-md-6">
                     <label className="fw-bold">Chuyên ngành:</label>
                     <div>{selectedStudent.major?.name}</div>
                   </div>
 
-                  {/* LAB */}
                   <div className="col-md-6">
                     <label className="fw-bold">Lab:</label>
                     <div>{selectedStudent.lab?.name || "Chưa gán"}</div>
                   </div>
 
-                  {/* START DATE */}
                   <div className="col-md-6">
                     <label className="fw-bold">Ngày bắt đầu:</label>
                     <div>{selectedStudent.startDate}</div>
@@ -654,7 +684,6 @@ export default function AdminStudentsPage() {
 
                   <hr className="mt-3" />
 
-                  {/* EMERGENCY CONTACT */}
                   <div className="col-12">
                     <h6 className="fw-bold">Liên hệ khẩn cấp:</h6>
                   </div>
