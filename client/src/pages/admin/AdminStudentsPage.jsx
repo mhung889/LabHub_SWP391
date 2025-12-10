@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from "react";
+import { toast } from "sonner";
 import studentApi from "@/api/studentApi";
 import majorApi from "@/api/majorApi";
 import labApi from "@/api/labApi";
-import clsx from "clsx";
 
 export default function AdminStudentsPage() {
   const [students, setStudents] = useState([]);
@@ -19,7 +19,10 @@ export default function AdminStudentsPage() {
   const [selectedStudent, setSelectedStudent] = useState(null);
   const detailModalRef = useRef(null);
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const [formData, setFormData] = useState({
+    studentCode: "",
     name: "",
     email: "",
     phone: "",
@@ -35,9 +38,7 @@ export default function AdminStudentsPage() {
 
   const [errors, setErrors] = useState({});
 
-  // =====================================================
   // LOAD DATA
-  // =====================================================
   const fetchStudents = async () => {
     try {
       const res = await studentApi.getAll();
@@ -59,7 +60,6 @@ export default function AdminStudentsPage() {
   const fetchLabs = async () => {
     try {
       const res = await labApi.getLabs();
-      // console.log(res);
       setLabs(res.data.labs || []);
     } catch (err) {
       console.error("Failed to load labs:", err);
@@ -72,9 +72,7 @@ export default function AdminStudentsPage() {
     fetchStudents();
   }, []);
 
-  // =====================================================
   // FILTER
-  // =====================================================
   const filteredStudents = students.filter((s) => {
     const matchSearch =
       s.user?.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -90,9 +88,16 @@ export default function AdminStudentsPage() {
     return matchSearch && matchMajor && matchLab;
   });
 
-  // =====================================================
+  //TOASTS
+  const showSuccessToast = (msg) => {
+    toast.success(msg, { icon: null });
+  };
+  
+  const showErrorToast = (msg) => {
+    toast.error(msg, { icon: null });
+  };
+
   // MODAL HANDLERS
-  // =====================================================
   const openModal = () => {
     const modal = new window.bootstrap.Modal(modalRef.current);
     modal.show();
@@ -113,11 +118,12 @@ export default function AdminStudentsPage() {
     modal.hide();
   };
 
-  // =====================================================
   // VALIDATION
-  // =====================================================
   const validateForm = () => {
     let newErrors = {};
+
+    if (!formData.studentCode.trim())
+      newErrors.studentCode = "Mã sinh viên không được để trống";
 
     if (!formData.name.trim()) newErrors.name = "Họ tên không được để trống";
 
@@ -129,32 +135,52 @@ export default function AdminStudentsPage() {
 
     if (!formData.gender) newErrors.gender = "Hãy chọn giới tính";
 
-    if (!formData.dob) newErrors.dob = "Hãy chọn ngày sinh";
+    if (!formData.dob) {
+      newErrors.dob = "Hãy chọn ngày sinh";
+    } else {
+      const dobDate = new Date(formData.dob);
+      const today = new Date();
 
-    if (!formData.address.trim())
-      newErrors.address = "Hãy nhập địa chỉ";
+      if (isNaN(dobDate.getTime())) {
+        newErrors.dob = "Ngày sinh không hợp lệ";
+      } else if (dobDate > today) {
+        newErrors.dob = "Ngày sinh không được ở tương lai";
+      } else {
+        const age =
+          today.getFullYear() -
+          dobDate.getFullYear() -
+          (today < new Date(today.getFullYear(), dobDate.getMonth(), dobDate.getDate())
+            ? 1
+            : 0);
 
-    if (!formData.major)
-      newErrors.major = "Hãy chọn chuyên ngành";
+        if (age < 17) {
+          newErrors.dob = "Sinh viên phải đủ 17 tuổi";
+        }
+      }
+    }
 
-    if (!formData.startDate)
-      newErrors.startDate = "Hãy chọn ngày bắt đầu";
+    if (!formData.address.trim()) newErrors.address = "Hãy nhập địa chỉ";
 
-    if (formData.emergencyPhone && 
-        !/^(0[3|5|7|8|9])[0-9]{8}$/.test(formData.emergencyPhone))
+    if (!formData.major) newErrors.major = "Hãy chọn chuyên ngành";
+
+    if (!formData.startDate) newErrors.startDate = "Hãy chọn ngày bắt đầu";
+
+    if (
+      formData.emergencyPhone &&
+      !/^(0[3|5|7|8|9])[0-9]{8}$/.test(formData.emergencyPhone)
+    )
       newErrors.emergencyPhone = "Số khẩn cấp không hợp lệ";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  // =====================================================
-  // ADD
-  // =====================================================
+  // ADD NEW STUDENT
   const handleAddStudent = () => {
     setEditingStudent(null);
     setErrors({});
     setFormData({
+      studentCode: "",
       name: "",
       email: "",
       phone: "",
@@ -170,13 +196,12 @@ export default function AdminStudentsPage() {
     openModal();
   };
 
-  // =====================================================
-  // EDIT
-  // =====================================================
+  // EDIT STUDENT
   const handleEditStudent = (student) => {
     setEditingStudent(student);
     setErrors({});
     setFormData({
+      studentCode: student.studentCode || "",
       name: student.user?.fullName || "",
       email: student.user?.email || "",
       phone: student.user?.phoneNumber || "",
@@ -192,15 +217,17 @@ export default function AdminStudentsPage() {
     openModal();
   };
 
-  // =====================================================
-  // SUBMIT
-  // =====================================================
+  // SUBMIT FORM (CREATE / UPDATE)
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!validateForm()) return;
 
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+
     const payload = {
+      studentCode: formData.studentCode,
       fullName: formData.name,
       email: formData.email.trim(),
       phoneNumber: formData.phone,
@@ -219,34 +246,38 @@ export default function AdminStudentsPage() {
     try {
       if (editingStudent) {
         await studentApi.update(editingStudent._id, payload);
+        showSuccessToast("Cập nhật sinh viên thành công!");
       } else {
         await studentApi.create(payload);
+        showSuccessToast("Thêm sinh viên thành công!");
       }
-
+    
       await fetchStudents();
       closeModal();
+    
     } catch (err) {
-      alert(err.response?.data?.message || "Có lỗi xảy ra");
+      showErrorToast(err.response?.data?.message || "Có lỗi xảy ra");
+    
+    } finally {
+      setIsSubmitting(false); 
     }
+    
   };
 
-  // =====================================================
-  // DELETE
-  // =====================================================
+  // DELETE STUDENT
   const handleDelete = async (id) => {
     if (!confirm("Bạn chắc chắn muốn xóa sinh viên này?")) return;
 
     try {
       await studentApi.delete(id);
+      showSuccessToast("Xóa sinh viên thành công!");
       await fetchStudents();
     } catch (err) {
-      console.error("Delete failed:", err);
+      showErrorToast(err.response?.data?.message || "Xóa thất bại");
     }
   };
 
-  // =====================================================
   // UI
-  // =====================================================
   return (
     <div className="container py-4">
 
@@ -260,7 +291,6 @@ export default function AdminStudentsPage() {
 
       {/* FILTER ROW */}
       <div className="row mb-4">
-
         <div className="col-md-4">
           <label className="form-label fw-semibold">Tìm kiếm</label>
           <input
@@ -303,7 +333,6 @@ export default function AdminStudentsPage() {
             ))}
           </select>
         </div>
-
       </div>
 
       {/* TABLE */}
@@ -370,7 +399,9 @@ export default function AdminStudentsPage() {
         </table>
 
         {filteredStudents.length === 0 && (
-          <p className="text-center text-muted py-3">Không tìm thấy sinh viên nào</p>
+          <p className="text-center text-muted py-3">
+            Không tìm thấy sinh viên nào
+          </p>
         )}
       </div>
 
@@ -383,11 +414,28 @@ export default function AdminStudentsPage() {
               <h5 className="modal-title">
                 {editingStudent ? "Sửa sinh viên" : "Thêm sinh viên"}
               </h5>
-              <button type="button" className="btn-close" onClick={closeModal}></button>
+              <button
+                type="button"
+                className="btn-close"
+                onClick={closeModal}
+              ></button>
             </div>
 
             <div className="modal-body">
               <div className="row g-3">
+
+                {/* STUDENT CODE */}
+                <div className="col-md-6">
+                  <label className="form-label">Mã sinh viên</label>
+                  <input
+                    className={`form-control ${errors.studentCode ? "is-invalid" : ""}`}
+                    value={formData.studentCode}
+                    onChange={(e) =>
+                      setFormData({ ...formData, studentCode: e.target.value })
+                    }
+                  />
+                  <div className="invalid-feedback">{errors.studentCode}</div>
+                </div>
 
                 {/* NAME */}
                 <div className="col-md-6">
@@ -548,7 +596,7 @@ export default function AdminStudentsPage() {
             </div>
 
             <div className="modal-footer">
-              <button className="btn btn-primary" type="submit">
+              <button className="btn btn-primary" type="submit" disabled={isSubmitting}>
                 {editingStudent ? "Cập nhật" : "Thêm"}
               </button>
               <button className="btn btn-secondary" type="button" onClick={closeModal}>
@@ -574,7 +622,6 @@ export default function AdminStudentsPage() {
               {selectedStudent ? (
                 <div className="row g-3">
 
-                  {/* ẢNH */}
                   <div className="col-12 text-center mb-3">
                     <img
                       src={selectedStudent.user?.image}
@@ -583,36 +630,31 @@ export default function AdminStudentsPage() {
                         width: "120px",
                         height: "120px",
                         borderRadius: "50%",
-                        objectFit: "cover"
+                        objectFit: "cover",
                       }}
                     />
                   </div>
 
-                  {/* HỌ TÊN */}
                   <div className="col-md-6">
                     <label className="fw-bold">Họ tên:</label>
                     <div>{selectedStudent.user?.fullName}</div>
                   </div>
 
-                  {/* EMAIL */}
                   <div className="col-md-6">
                     <label className="fw-bold">Email:</label>
                     <div>{selectedStudent.user?.email}</div>
                   </div>
 
-                  {/* PHONE */}
                   <div className="col-md-6">
                     <label className="fw-bold">Số điện thoại:</label>
                     <div>{selectedStudent.user?.phoneNumber}</div>
                   </div>
 
-                  {/* GIỚI TÍNH */}
                   <div className="col-md-6">
                     <label className="fw-bold">Giới tính:</label>
                     <div>{selectedStudent.user?.gender}</div>
                   </div>
 
-                  {/* NGÀY SINH */}
                   <div className="col-md-6">
                     <label className="fw-bold">Ngày sinh:</label>
                     <div>
@@ -622,31 +664,26 @@ export default function AdminStudentsPage() {
                     </div>
                   </div>
 
-                  {/* ĐỊA CHỈ */}
                   <div className="col-md-6">
                     <label className="fw-bold">Địa chỉ:</label>
                     <div>{selectedStudent.user?.address}</div>
                   </div>
 
-                  {/* MÃ SV */}
                   <div className="col-md-6">
                     <label className="fw-bold">Mã sinh viên:</label>
                     <div>{selectedStudent.studentCode}</div>
                   </div>
 
-                  {/* NGÀNH */}
                   <div className="col-md-6">
                     <label className="fw-bold">Chuyên ngành:</label>
                     <div>{selectedStudent.major?.name}</div>
                   </div>
 
-                  {/* LAB */}
                   <div className="col-md-6">
                     <label className="fw-bold">Lab:</label>
                     <div>{selectedStudent.lab?.name || "Chưa gán"}</div>
                   </div>
 
-                  {/* START DATE */}
                   <div className="col-md-6">
                     <label className="fw-bold">Ngày bắt đầu:</label>
                     <div>{selectedStudent.startDate}</div>
@@ -654,7 +691,6 @@ export default function AdminStudentsPage() {
 
                   <hr className="mt-3" />
 
-                  {/* EMERGENCY CONTACT */}
                   <div className="col-12">
                     <h6 className="fw-bold">Liên hệ khẩn cấp:</h6>
                   </div>
