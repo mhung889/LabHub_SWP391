@@ -4,7 +4,9 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { getAccessToken, clearStorage } from "../../utils/storage";
 import authApi from "../../api/authApi";
-import "./StudentDashboard.css";
+import "../../components/css/StudentDashboard.css"
+import Sidebar from "../../components/student/sidebar/Sidebar";
+
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
@@ -54,66 +56,10 @@ const StudentDashboard = () => {
 
   return (
     <div className="d-flex w-100 overflow-hidden">
-      {/* --- Sidebar --- */}
-      <aside className="sidebar-wrapper d-flex flex-column flex-shrink-0 p-4 d-none d-lg-flex">
-        <div className="d-flex align-items-center gap-2 px-2 mb-5">
-          <span className="material-symbols-outlined text-primary-custom fs-2">
-            task_alt
-          </span>
-          <h2 className="h4 fw-bold m-0 text-dark">LabHub</h2>
-        </div>
+      {/* --- Sidebar for student--- */}
+      
+      <Sidebar user={user} />
 
-        <div className="mb-4">
-          <div className="d-flex align-items-center gap-3 mb-4">
-            <div
-              className="avatar bg-light"
-              style={{
-                backgroundImage: `url("${
-                  user.image || "https://via.placeholder.com/50"
-                }")`,
-              }}
-            ></div>
-            <div>
-              <h1 className="h6 fw-bold mb-0 text-dark">{user.fullName}</h1>
-              <small className="text-secondary">MSSV: {user.studentId}</small>
-            </div>
-          </div>
-
-          <nav className="d-flex flex-column gap-2">
-            <a href="/student" className="nav-link-custom active">
-              <span
-                className="material-symbols-outlined"
-                style={{ fontVariationSettings: "'FILL' 1" }}
-              >
-                dashboard
-              </span>
-              Bảng điều khiển
-            </a>
-            <a href="#" className="nav-link-custom">
-              <span className="material-symbols-outlined">history</span>
-              Lịch sử điểm danh
-            </a>
-            <a href="/student/profile" className="nav-link-custom">
-              <span className="material-symbols-outlined">person</span>
-              Hồ sơ
-            </a>
-          </nav>
-        </div>
-
-        <div className="mt-auto d-flex flex-column gap-3">
-          <a href="#" className="nav-link-custom">
-            <span className="material-symbols-outlined">settings</span>
-            Cài đặt
-          </a>
-          <Button
-            variant="light"
-            className="w-100 fw-bold text-secondary py-2"
-            onClick={handleLogout}
-          >
-            Đăng xuất
-          </Button>
-        </div>
-      </aside>
 
       {/* --- Main Content --- */}
       <main

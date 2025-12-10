@@ -6,29 +6,31 @@ import NotFound from './pages/NotFound';
 import Login from './pages/student/Login';
 import StudentDashboard from './pages/student/StudentDashboard';
 import StudentProfile from './pages/student/StudentProfile';
-import AdminLayout from "./pages/admin/AdminLayout"
-import AdminOverviewPage from "./pages/admin/AdminOverviewPage"
-import AdminLabsPage from "./pages/admin/AdminLab/AdminLabsPage"
-import AdminMentorsPage from "./pages/admin/AdminMentorsPage"
-import AdminStudentsPage from "./pages/admin/AdminStudentsPage"
+import AdminLayout from './pages/admin/AdminLayout';
+import AdminOverviewPage from './pages/admin/AdminOverviewPage';
+import AdminLabsPage from './pages/admin/AdminLab/AdminLabsPage';
+import AdminMentorsPage from './pages/admin/AdminMentorsPage';
+import AdminStudentsPage from './pages/admin/AdminStudentsPage';
+
+import LeaveRequestStudent from "./pages/student/LeaveRequestStudent";
+
 
 function App() {
   return (
     <>
-      <Toaster duration={1500}/>
+      <Toaster duration={1500} />
 
       <BrowserRouter>
         <Routes>
           <Route path='/' element={<HomePage />} />
 
           {/* student */}
-            <Route path='/login' element={<Login />} />
-            <Route path='/student' element={<StudentDashboard />} />
-            <Route path='/student/profile' element={<StudentProfile />} />
-          
+          <Route path='/login' element={<Login />} />
+          <Route path='/student' element={<StudentDashboard />} />
+          <Route path='/student/profile' element={<StudentProfile />} />
+          <Route path='/student/leave' element={<LeaveRequestStudent />} />
 
           {/* mentor */}
-
 
           {/* admin */}
           <Route path='/admin' element={<AdminLayout />}>
@@ -39,7 +41,6 @@ function App() {
             <Route path='mentors' element={<AdminMentorsPage />} />
             <Route path='students' element={<AdminStudentsPage />} />
           </Route>
-
 
           <Route path='*' element={<NotFound />} />
         </Routes>

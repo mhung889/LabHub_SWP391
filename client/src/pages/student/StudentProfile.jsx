@@ -1,3 +1,4 @@
+// src/pages/student/StudentProfile.jsx
 import React, { useState, useEffect } from "react";
 import {
   Container,
@@ -9,15 +10,15 @@ import {
   Modal,
   Alert,
 } from "react-bootstrap";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import authApi from "../../api/authApi";
 import { getAccessToken } from "../../utils/storage";
 
-import "./StudentProfile.css";
+import "../../components/css/StudentProfile.css";
+import Sidebar from "../../components/student/sidebar/Sidebar";
 
 const StudentProfile = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const [user, setUser] = useState(null);
   const [student, setStudent] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -34,7 +35,6 @@ const StudentProfile = () => {
   });
   const [changingPassword, setChangingPassword] = useState(false);
 
-  // Form data
   const [formData, setFormData] = useState({
     fullName: "",
     phoneNumber: "",
@@ -54,22 +54,19 @@ const StudentProfile = () => {
         }
 
         const response = await authApi.getProfile();
-        console.log("Profile response:", response); // Debug log
+        console.log("Profile response:", response);
 
-        // Luôn set user nếu có
         if (response.user) {
           setUser(response.user);
           localStorage.setItem("user", JSON.stringify(response.user));
         }
 
-        // Set student nếu có, nếu không có thì để null (không logout)
         setStudent(response.student || null);
 
-        // Khởi tạo form data - chỉ khi có user
         if (response.user) {
           setFormData({
             fullName: response.user.fullName || "",
-            phoneNumber: response.user.phoneNumber || "",
+            phoneNumber: response.user.phoneNumber || response.student?.phoneNumber || "",
             address: response.student?.address || "",
             className: response.student?.className || "",
             dateOfBirth: response.student?.dateOfBirth
@@ -82,19 +79,14 @@ const StudentProfile = () => {
         }
       } catch (error) {
         console.error("Error fetching profile:", error);
-        // Chỉ logout nếu thực sự là lỗi 401 (unauthorized)
-        // Các lỗi khác (404, 500, etc.) chỉ hiển thị thông báo, không logout
         if (error.response?.status === 401) {
-          // Token không hợp lệ hoặc hết hạn - logout
           authApi.logout();
           navigate("/login");
         } else {
-          // Lỗi khác (404, 500, network error, etc.) - chỉ hiển thị thông báo
           setError(
             error.response?.data?.message ||
               "Không thể tải thông tin hồ sơ. Vui lòng thử lại sau."
           );
-          // Vẫn hiển thị trang với thông tin hiện có (nếu có)
         }
       } finally {
         setLoading(false);
@@ -103,11 +95,6 @@ const StudentProfile = () => {
 
     fetchProfile();
   }, [navigate]);
-
-  const handleLogout = () => {
-    authApi.logout();
-    navigate("/login");
-  };
 
   const handleEdit = () => {
     setIsEditing(true);
@@ -119,7 +106,7 @@ const StudentProfile = () => {
     setIsEditing(false);
     setError("");
     setSuccess("");
-    // Reset form data về giá trị ban đầu
+
     if (user && student) {
       setFormData({
         fullName: user.fullName || "",
@@ -149,12 +136,12 @@ const StudentProfile = () => {
     setSaving(true);
 
     try {
-      // Chỉ gửi các trường có giá trị
       const updateData = {};
+
       if (formData.fullName && formData.fullName.trim()) {
         updateData.fullName = formData.fullName.trim();
       }
-      // Luôn gửi phoneNumber nếu có trong formData (kể cả empty string)
+
       if (formData.phoneNumber !== undefined) {
         updateData.phoneNumber = formData.phoneNumber.trim();
       }
@@ -174,17 +161,14 @@ const StudentProfile = () => {
       console.log("Updating profile with data:", updateData);
 
       const response = await authApi.updateProfile(updateData);
-
       console.log("Update response:", response);
 
-      // Cập nhật state
       if (response.user) {
         setUser(response.user);
         localStorage.setItem("user", JSON.stringify(response.user));
       }
       if (response.student) {
         setStudent(response.student);
-        // Cập nhật formData với dữ liệu mới
         setFormData({
           fullName: response.user?.fullName || "",
           phoneNumber:
@@ -200,8 +184,6 @@ const StudentProfile = () => {
 
       setSuccess(response.message || "Cập nhật hồ sơ thành công!");
       setIsEditing(false);
-
-      // Ẩn thông báo sau 3 giây
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
       console.error("Update profile error:", err);
@@ -219,13 +201,11 @@ const StudentProfile = () => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Kiểm tra file type
     if (!file.type.startsWith("image/")) {
       setError("Vui lòng chọn file ảnh hợp lệ");
       return;
     }
 
-    // Kiểm tra file size (5MB)
     if (file.size > 5 * 1024 * 1024) {
       setError("Kích thước file không được vượt quá 5MB");
       return;
@@ -238,7 +218,6 @@ const StudentProfile = () => {
     try {
       const response = await authApi.uploadAvatar(file);
 
-      // Cập nhật state với dữ liệu mới
       if (response.user) {
         setUser(response.user);
         localStorage.setItem("user", JSON.stringify(response.user));
@@ -258,7 +237,6 @@ const StudentProfile = () => {
       setError(errorMessage);
     } finally {
       setUploadingAvatar(false);
-      // Reset input để có thể chọn lại file cùng tên
       e.target.value = "";
     }
   };
@@ -276,7 +254,6 @@ const StudentProfile = () => {
     setError("");
     setSuccess("");
 
-    // Validation
     if (
       !passwordData.currentPassword ||
       !passwordData.newPassword ||
@@ -333,7 +310,6 @@ const StudentProfile = () => {
     try {
       const date = new Date(dateString);
       if (isNaN(date.getTime())) {
-        // Nếu là string date format "YYYY-MM-DD"
         if (
           typeof dateString === "string" &&
           dateString.match(/^\d{4}-\d{2}-\d{2}$/)
@@ -341,7 +317,7 @@ const StudentProfile = () => {
           const [year, month, day] = dateString.split("-");
           return `${day}/${month}/${year}`;
         }
-        return dateString; // Trả về nguyên bản nếu không parse được
+        return dateString;
       }
       return date.toLocaleDateString("vi-VN", {
         year: "numeric",
@@ -369,113 +345,17 @@ const StudentProfile = () => {
     );
   }
 
-  const isProfilePage = location.pathname === "/student/profile";
-
   return (
     <div className="d-flex w-100 overflow-hidden">
-      {/* --- Sidebar --- */}
-      <aside className="sidebar-wrapper d-flex flex-column flex-shrink-0 p-4 d-none d-lg-flex">
-        <div className="d-flex align-items-center gap-2 px-2 mb-5">
-          <span className="material-symbols-outlined text-primary-custom fs-2">
-            task_alt
-          </span>
-          <h2 className="h4 fw-bold m-0 text-dark">LabHub</h2>
-        </div>
+      {/* Sidebar dùng chung */}
+      <Sidebar user={user} />
 
-        <div className="mb-4">
-          <div className="d-flex align-items-center gap-3 mb-4">
-            <div
-              className="avatar bg-light d-flex align-items-center justify-content-center"
-              style={{
-                backgroundImage: user?.image ? `url("${user.image}")` : "none",
-                backgroundColor: user?.image ? "transparent" : "#e2e8f0",
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-              }}
-            >
-              {!user?.image && (
-                <span
-                  className="material-symbols-outlined text-secondary"
-                  style={{ fontSize: "24px" }}
-                >
-                  person
-                </span>
-              )}
-            </div>
-            <div>
-              <h1 className="h6 fw-bold mb-0 text-dark">
-                {user?.fullName || "Student"}
-              </h1>
-              <small className="text-secondary">
-                {student?.studentCode
-                  ? `MSSV: ${student.studentCode}`
-                  : user?.email || ""}
-              </small>
-            </div>
-          </div>
-
-          <nav className="d-flex flex-column gap-2">
-            <button
-              onClick={() => navigate("/student")}
-              className={`nav-link-custom ${!isProfilePage ? "active" : ""}`}
-            >
-              <span
-                className="material-symbols-outlined"
-                style={{
-                  fontVariationSettings: !isProfilePage
-                    ? "'FILL' 1"
-                    : "'FILL' 0",
-                }}
-              >
-                dashboard
-              </span>
-              Bảng điều khiển
-            </button>
-            <button className="nav-link-custom">
-              <span className="material-symbols-outlined">history</span>
-              Lịch sử điểm danh
-            </button>
-            <button
-              onClick={() => navigate("/student/profile")}
-              className={`nav-link-custom ${isProfilePage ? "active" : ""}`}
-            >
-              <span
-                className="material-symbols-outlined"
-                style={{
-                  fontVariationSettings: isProfilePage
-                    ? "'FILL' 1"
-                    : "'FILL' 0",
-                }}
-              >
-                person
-              </span>
-              Hồ sơ
-            </button>
-          </nav>
-        </div>
-
-        <div className="mt-auto d-flex flex-column gap-3">
-          <button className="nav-link-custom">
-            <span className="material-symbols-outlined">settings</span>
-            Cài đặt
-          </button>
-          <Button
-            variant="light"
-            className="w-100 fw-bold text-secondary py-2"
-            onClick={handleLogout}
-          >
-            Đăng xuất
-          </Button>
-        </div>
-      </aside>
-
-      {/* --- Main Content --- */}
+      {/* Main Content */}
       <main
         className="flex-grow-1 p-4 p-lg-5"
         style={{ backgroundColor: "#f6f7f8" }}
       >
         <Container fluid="lg">
-          {/* Header */}
           <div className="mb-4 mb-lg-5">
             <h1 className="display-6 fw-bold text-dark mb-2">Hồ sơ cá nhân</h1>
             <p className="text-secondary">
@@ -483,7 +363,6 @@ const StudentProfile = () => {
             </p>
           </div>
 
-          {/* Alert Messages */}
           {error && (
             <Alert variant="danger" dismissible onClose={() => setError("")}>
               {error}
@@ -708,28 +587,13 @@ const StudentProfile = () => {
                             <Col md={6}>
                               <Form.Group>
                                 <Form.Label className="info-label">
-                                  Lớp
-                                </Form.Label>
-                                <Form.Control
-                                  type="text"
-                                  name="className"
-                                  value={formData.className}
-                                  onChange={handleInputChange}
-                                  placeholder="Nhập tên lớp"
-                                  className="custom-input"
-                                />
-                              </Form.Group>
-                            </Col>
-                            <Col md={6}>
-                              <Form.Group>
-                                <Form.Label className="info-label">
                                   Chuyên ngành
                                 </Form.Label>
                                 <Form.Control
                                   type="text"
                                   value={
                                     typeof student?.major === "object" &&
-                                    student.major.name
+                                    student.major?.name
                                       ? student.major.name
                                       : typeof student?.major === "string"
                                       ? student.major

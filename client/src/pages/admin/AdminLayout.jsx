@@ -2,6 +2,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { Users, Zap, BarChart3, GraduationCap } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import LogoutButton from '@/components/LogoutButton';
 
 export default function AdminLayout() {
   const tabs = [
@@ -61,6 +62,8 @@ export default function AdminLayout() {
           >
             Đăng xuất
           </Button>
+
+          {/* <LogoutButton/> */}
         </div>
       </aside>
 
