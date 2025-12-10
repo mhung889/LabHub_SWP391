@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { toast } from "sonner";
 import studentApi from "@/api/studentApi";
 import majorApi from "@/api/majorApi";
 import labApi from "@/api/labApi";
@@ -18,6 +19,8 @@ export default function AdminStudentsPage() {
   const [selectedStudent, setSelectedStudent] = useState(null);
   const detailModalRef = useRef(null);
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const [formData, setFormData] = useState({
     studentCode: "",
     name: "",
@@ -35,9 +38,7 @@ export default function AdminStudentsPage() {
 
   const [errors, setErrors] = useState({});
 
-  // =====================================================
   // LOAD DATA
-  // =====================================================
   const fetchStudents = async () => {
     try {
       const res = await studentApi.getAll();
@@ -71,9 +72,7 @@ export default function AdminStudentsPage() {
     fetchStudents();
   }, []);
 
-  // =====================================================
   // FILTER
-  // =====================================================
   const filteredStudents = students.filter((s) => {
     const matchSearch =
       s.user?.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -89,9 +88,16 @@ export default function AdminStudentsPage() {
     return matchSearch && matchMajor && matchLab;
   });
 
-  // =====================================================
+  //TOASTS
+  const showSuccessToast = (msg) => {
+    toast.success(msg, { icon: null });
+  };
+  
+  const showErrorToast = (msg) => {
+    toast.error(msg, { icon: null });
+  };
+
   // MODAL HANDLERS
-  // =====================================================
   const openModal = () => {
     const modal = new window.bootstrap.Modal(modalRef.current);
     modal.show();
@@ -112,9 +118,7 @@ export default function AdminStudentsPage() {
     modal.hide();
   };
 
-  // =====================================================
   // VALIDATION
-  // =====================================================
   const validateForm = () => {
     let newErrors = {};
 
@@ -131,7 +135,6 @@ export default function AdminStudentsPage() {
 
     if (!formData.gender) newErrors.gender = "Hãy chọn giới tính";
 
-    // DOB VALIDATION
     if (!formData.dob) {
       newErrors.dob = "Hãy chọn ngày sinh";
     } else {
@@ -156,14 +159,11 @@ export default function AdminStudentsPage() {
       }
     }
 
-    if (!formData.address.trim())
-      newErrors.address = "Hãy nhập địa chỉ";
+    if (!formData.address.trim()) newErrors.address = "Hãy nhập địa chỉ";
 
-    if (!formData.major)
-      newErrors.major = "Hãy chọn chuyên ngành";
+    if (!formData.major) newErrors.major = "Hãy chọn chuyên ngành";
 
-    if (!formData.startDate)
-      newErrors.startDate = "Hãy chọn ngày bắt đầu";
+    if (!formData.startDate) newErrors.startDate = "Hãy chọn ngày bắt đầu";
 
     if (
       formData.emergencyPhone &&
@@ -175,9 +175,7 @@ export default function AdminStudentsPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  // =====================================================
-  // ADD
-  // =====================================================
+  // ADD NEW STUDENT
   const handleAddStudent = () => {
     setEditingStudent(null);
     setErrors({});
@@ -198,9 +196,7 @@ export default function AdminStudentsPage() {
     openModal();
   };
 
-  // =====================================================
-  // EDIT
-  // =====================================================
+  // EDIT STUDENT
   const handleEditStudent = (student) => {
     setEditingStudent(student);
     setErrors({});
@@ -221,13 +217,14 @@ export default function AdminStudentsPage() {
     openModal();
   };
 
-  // =====================================================
-  // SUBMIT
-  // =====================================================
+  // SUBMIT FORM (CREATE / UPDATE)
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!validateForm()) return;
+
+    if (isSubmitting) return;
+    setIsSubmitting(true);
 
     const payload = {
       studentCode: formData.studentCode,
@@ -249,34 +246,38 @@ export default function AdminStudentsPage() {
     try {
       if (editingStudent) {
         await studentApi.update(editingStudent._id, payload);
+        showSuccessToast("Cập nhật sinh viên thành công!");
       } else {
         await studentApi.create(payload);
+        showSuccessToast("Thêm sinh viên thành công!");
       }
-
+    
       await fetchStudents();
       closeModal();
+    
     } catch (err) {
-      alert(err.response?.data?.message || "Có lỗi xảy ra");
+      showErrorToast(err.response?.data?.message || "Có lỗi xảy ra");
+    
+    } finally {
+      setIsSubmitting(false); 
     }
+    
   };
 
-  // =====================================================
-  // DELETE
-  // =====================================================
+  // DELETE STUDENT
   const handleDelete = async (id) => {
     if (!confirm("Bạn chắc chắn muốn xóa sinh viên này?")) return;
 
     try {
       await studentApi.delete(id);
+      showSuccessToast("Xóa sinh viên thành công!");
       await fetchStudents();
     } catch (err) {
-      console.error("Delete failed:", err);
+      showErrorToast(err.response?.data?.message || "Xóa thất bại");
     }
   };
 
-  // =====================================================
   // UI
-  // =====================================================
   return (
     <div className="container py-4">
 
@@ -398,7 +399,9 @@ export default function AdminStudentsPage() {
         </table>
 
         {filteredStudents.length === 0 && (
-          <p className="text-center text-muted py-3">Không tìm thấy sinh viên nào</p>
+          <p className="text-center text-muted py-3">
+            Không tìm thấy sinh viên nào
+          </p>
         )}
       </div>
 
@@ -411,7 +414,11 @@ export default function AdminStudentsPage() {
               <h5 className="modal-title">
                 {editingStudent ? "Sửa sinh viên" : "Thêm sinh viên"}
               </h5>
-              <button type="button" className="btn-close" onClick={closeModal}></button>
+              <button
+                type="button"
+                className="btn-close"
+                onClick={closeModal}
+              ></button>
             </div>
 
             <div className="modal-body">
@@ -589,7 +596,7 @@ export default function AdminStudentsPage() {
             </div>
 
             <div className="modal-footer">
-              <button className="btn btn-primary" type="submit">
+              <button className="btn btn-primary" type="submit" disabled={isSubmitting}>
                 {editingStudent ? "Cập nhật" : "Thêm"}
               </button>
               <button className="btn btn-secondary" type="button" onClick={closeModal}>
@@ -623,7 +630,7 @@ export default function AdminStudentsPage() {
                         width: "120px",
                         height: "120px",
                         borderRadius: "50%",
-                        objectFit: "cover"
+                        objectFit: "cover",
                       }}
                     />
                   </div>
