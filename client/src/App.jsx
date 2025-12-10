@@ -6,11 +6,16 @@ import NotFound from './pages/NotFound';
 import Login from './pages/student/Login';
 import StudentDashboard from './pages/student/StudentDashboard';
 import StudentProfile from './pages/student/StudentProfile';
-import AdminLayout from './pages/admin/AdminLayout';
-import AdminOverviewPage from './pages/admin/AdminOverviewPage';
-import AdminLabsPage from './pages/admin/AdminLab/AdminLabsPage';
-import AdminMentorsPage from './pages/admin/AdminMentorsPage';
-import AdminStudentsPage from './pages/admin/AdminStudentsPage';
+import AdminLayout from "./pages/admin/AdminLayout"
+import AdminOverviewPage from "./pages/admin/AdminOverviewPage"
+import AdminLabsPage from "./pages/admin/AdminLab/AdminLabsPage"
+import AdminMentorsPage from "./pages/admin/AdminMentorsPage"
+import AdminStudentsPage from "./pages/admin/AdminStudentsPage"
+import MentorLayout from "./pages/mentor/MentorLayout"
+import MentorDashboard from "./pages/mentor/MentorDashboard"
+import MentorTasksPage from "./pages/mentor/MentorTasksPage"
+import MentorStudentsPage from "./pages/mentor/MentorStudentsPage"
+
 
 import LeaveRequestStudent from "./pages/student/LeaveRequestStudent";
 
@@ -31,6 +36,13 @@ function App() {
           <Route path='/student/leave' element={<LeaveRequestStudent />} />
 
           {/* mentor */}
+          <Route path='/mentor' element={<MentorLayout />}>
+            <Route index element={<MentorDashboard />} />
+            <Route path='dashboard' element={<MentorDashboard />} />
+            <Route path='tasks' element={<MentorTasksPage />} />
+            <Route path='students' element={<MentorStudentsPage />} />
+          </Route>
+
 
           {/* admin */}
           <Route path='/admin' element={<AdminLayout />}>

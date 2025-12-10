@@ -4,6 +4,8 @@ const accountRouter = require('./account.router');
 const mentorRouter = require('./mentor.router');
 const majorRouter = require('./major.router');
 const studentRouter = require('./student.router');
+const taskRouter = require('./task.router');
+const evaluationRouter = require('./evaluation.router');
 
 module.exports = (app) => {
   app.use('/api/labs', labRouter);
@@ -11,6 +13,8 @@ module.exports = (app) => {
   app.use('/api/mentors', mentorRouter);
   app.use('/api/students', studentRouter);
   app.use('/api/majors', majorRouter);
+  app.use('/api/tasks', taskRouter);
+  app.use('/api/evaluations', evaluationRouter);
 
   
   app.use(errorHandler);
