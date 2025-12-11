@@ -13,6 +13,8 @@ const {
   getAccountById,
   refreshToken,
   changePassword,
+  requestPasswordReset,
+  resetPassword,
   getProfile,
   updateProfile,
   uploadAvatar,
@@ -33,6 +35,10 @@ router
 // export-excel route removed (not implemented)
 
 router.route('/login').post(asyncMiddleware(login));
+
+// Forgot / Reset password
+router.route('/forgot-password').post(asyncMiddleware(requestPasswordReset));
+router.route('/reset-password').post(asyncMiddleware(resetPassword));
 
 router.route('/refresh-token').post(asyncMiddleware(refreshToken));
 

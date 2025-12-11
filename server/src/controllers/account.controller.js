@@ -2,6 +2,8 @@ require('dotenv').config();
 const bcryptjs = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const cloudinary = require('../config/cloudinary');
+const crypto = require('crypto');
+const sendMail = require('../helpers/send.mail');
 
 const UserModel = require('../models/user-model');
 
@@ -246,6 +248,77 @@ module.exports = {
     }).select('-passwordHash');
 
     return res.status(200).json(updatedUser);
+  },
+
+  // Request password reset: generate token and send email
+  requestPasswordReset: async (req, res) => {
+    const { email } = req.body;
+
+    if (!email) {
+      throw new ErrorResponse(400, 'Vui lòng cung cấp email');
+    }
+
+    const user = await UserModel.findOne({ email });
+
+    // Do not reveal whether user exists
+    if (!user) {
+      return res.status(200).json({ message: 'Nếu email tồn tại, một link đặt lại mật khẩu đã được gửi' });
+    }
+
+    // Generate token
+    const token = crypto.randomBytes(32).toString('hex');
+    user.resetPasswordToken = token;
+    user.resetPasswordExpires = Date.now() + 3600 * 1000; // 1 hour
+    await user.save();
+
+    const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+    const resetUrl = `${clientUrl}/reset-password?token=${token}`;
+
+    const html = `
+      <p>Bạn (hoặc ai đó) đã yêu cầu đặt lại mật khẩu. Nếu bạn không yêu cầu, hãy bỏ qua email này.</p>
+      <p>Nhấn vào liên kết bên dưới để đặt lại mật khẩu (hết hạn sau 1 giờ):</p>
+      <p><a href="${resetUrl}">Đặt lại mật khẩu</a></p>
+    `;
+
+    try {
+      await sendMail({
+        to: user.email,
+        subject: 'Yêu cầu đặt lại mật khẩu - LabHub',
+        html,
+      });
+    } catch (err) {
+      console.error('Error sending reset email:', err);
+      throw new ErrorResponse(500, 'Không thể gửi email đặt lại mật khẩu');
+    }
+
+    return res.status(200).json({ message: 'Nếu email tồn tại, một link đặt lại mật khẩu đã được gửi' });
+  },
+
+  // Reset password using token
+  resetPassword: async (req, res) => {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+      throw new ErrorResponse(400, 'Token và mật khẩu mới là bắt buộc');
+    }
+
+    const user = await UserModel.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      throw new ErrorResponse(400, 'Token đặt lại mật khẩu không hợp lệ hoặc đã hết hạn');
+    }
+
+    // Update password
+    const passwordHash = bcryptjs.hashSync(newPassword, 10);
+    user.passwordHash = passwordHash;
+    user.resetPasswordToken = null;
+    user.resetPasswordExpires = null;
+    await user.save();
+
+    return res.status(200).json({ message: 'Đặt lại mật khẩu thành công' });
   },
 
   getProfile: async (req, res) => {
