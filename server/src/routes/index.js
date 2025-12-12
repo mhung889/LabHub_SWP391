@@ -6,6 +6,7 @@ const majorRouter = require('./major.router');
 const studentRouter = require('./student.router');
 const taskRouter = require('./task.router');
 const evaluationRouter = require('./evaluation.router');
+const notificationRouter = require('./notification.router');
 
 module.exports = (app) => {
   app.use('/api/labs', labRouter);
@@ -15,6 +16,7 @@ module.exports = (app) => {
   app.use('/api/majors', majorRouter);
   app.use('/api/tasks', taskRouter);
   app.use('/api/evaluations', evaluationRouter);
+  app.use('/api/notifications', notificationRouter);
 
   
   app.use(errorHandler);

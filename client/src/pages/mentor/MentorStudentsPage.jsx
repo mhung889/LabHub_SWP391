@@ -35,10 +35,11 @@ export default function MentorStudentsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-foreground">
-          Sinh Viên Của Tôi
-        </h1>
+      <div>
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-foreground">Sinh Viên Của Tôi</h1>
+        </div>
+        
       </div>
 
       <Card className="overflow-hidden">
