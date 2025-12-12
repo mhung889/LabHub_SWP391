@@ -45,5 +45,12 @@ router.route('/:id/student').post(labController.addStudentToLabById);
 
 router.route('/:id/remove-student').delete(labController.removeStudentFromLab);
 
+router.put(
+  "/:id/attendance-rule",
+  asyncMiddleware(verifyToken),
+  roleMiddleware("admin"),
+  asyncMiddleware(labController.updateAttendanceRule)
+);
+
 
 module.exports = router;

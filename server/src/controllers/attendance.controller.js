@@ -2,6 +2,11 @@ const axios = require("axios");
 const User = require("../models/user-model");
 const Student = require("../models/student-model");
 const LabAttendance = require("../models/lab-attendance-model");
+const Lab = require("../models/lab-model");
+const {
+  isCheckInAllowed,
+  isCheckOutAllowed,
+} = require("../helpers/attendance-time.helper");
 const ErrorResponse = require("../helpers/ErrorResponse");
 
 // ===============================================
@@ -95,26 +100,43 @@ exports.registerFace = async (req, res) => {
 exports.checkin = async (req, res) => {
   try {
     const { imageBase64 } = req.body;
-    if (!imageBase64) throw new ErrorResponse(400, "Thiếu ảnh checkin");
+    if (!imageBase64) throw new ErrorResponse(400, "Thiếu ảnh check-in");
 
     const user = await User.findById(req.user._id);
-    if (!user.faceToken) throw new ErrorResponse(400, "Bạn chưa đăng ký khuôn mặt");
+    if (!user.faceToken)
+      throw new ErrorResponse(400, "Bạn chưa đăng ký khuôn mặt");
 
     const student = await Student.findOne({ user: user._id });
     if (!student) throw new ErrorResponse(404, "Không tìm thấy student");
-    if (!student.lab) throw new ErrorResponse(400, "Bạn chưa được gán lab");
+    if (!student.lab)
+      throw new ErrorResponse(400, "Bạn chưa được gán lab");
 
-    // Detect face
-    const faceTokenCheck = await detectFace(imageBase64);
-    if (!faceTokenCheck) throw new ErrorResponse(400, "Không nhận diện được khuôn mặt");
+    // ===== LẤY LAB =====
+    const lab = await Lab.findById(student.lab);
+    if (!lab) throw new ErrorResponse(404, "Lab không tồn tại");
 
-    // Compare
-    const confidence = await compareFaces(user.faceToken, faceTokenCheck);
-    if (confidence < 75) {
-      throw new ErrorResponse(400, "Khuôn mặt không khớp");
+    if (lab.status !== "active") {
+      throw new ErrorResponse(400, "Lab hiện không hoạt động");
     }
 
-    // Create attendance if not exist
+    // ===== CHECK TIME RULE =====
+    if (!isCheckInAllowed(lab)) {
+      throw new ErrorResponse(
+        400,
+        "Chưa đến thời gian cho phép check-in"
+      );
+    }
+
+    // ===== FACE DETECT =====
+    const faceTokenCheck = await detectFace(imageBase64);
+    if (!faceTokenCheck)
+      throw new ErrorResponse(400, "Không nhận diện được khuôn mặt");
+
+    const confidence = await compareFaces(user.faceToken, faceTokenCheck);
+    if (confidence < 75)
+      throw new ErrorResponse(400, "Khuôn mặt không khớp");
+
+    // ===== ATTENDANCE RECORD =====
     const today = new Date();
     const dateOnly = new Date(today.toISOString().split("T")[0]);
 
@@ -125,7 +147,9 @@ exports.checkin = async (req, res) => {
     });
 
     if (attendance && attendance.checkInTime) {
-      return res.status(400).json({ message: "Bạn đã check-in hôm nay rồi" });
+      return res
+        .status(400)
+        .json({ message: "Bạn đã check-in hôm nay rồi" });
     }
 
     if (!attendance) {
@@ -144,7 +168,9 @@ exports.checkin = async (req, res) => {
       attendance,
     });
   } catch (err) {
-    return res.status(err.statusCode || 500).json({ message: err.message });
+    return res
+      .status(err.statusCode || 500)
+      .json({ message: err.message });
   }
 };
 
@@ -157,12 +183,31 @@ exports.checkout = async (req, res) => {
     if (!imageBase64) throw new ErrorResponse(400, "Thiếu ảnh checkout");
 
     const user = await User.findById(req.user._id);
-    if (!user.faceToken) throw new ErrorResponse(400, "Bạn chưa đăng ký khuôn mặt");
+    if (!user.faceToken)
+      throw new ErrorResponse(400, "Bạn chưa đăng ký khuôn mặt");
 
     const student = await Student.findOne({ user: user._id });
     if (!student) throw new ErrorResponse(404, "Không tìm thấy student");
+    if (!student.lab)
+      throw new ErrorResponse(400, "Bạn chưa được gán lab");
 
-    // Find today's record
+    // ===== LẤY LAB =====
+    const lab = await Lab.findById(student.lab);
+    if (!lab) throw new ErrorResponse(404, "Lab không tồn tại");
+
+    if (lab.status !== "active") {
+      throw new ErrorResponse(400, "Lab hiện không hoạt động");
+    }
+
+    // ===== CHECK TIME RULE =====
+    if (!isCheckOutAllowed(lab)) {
+      throw new ErrorResponse(
+        400,
+        "Chưa đến thời gian cho phép check-out"
+      );
+    }
+
+    // ===== FIND ATTENDANCE =====
     const today = new Date();
     const dateOnly = new Date(today.toISOString().split("T")[0]);
 
@@ -180,13 +225,14 @@ exports.checkout = async (req, res) => {
       throw new ErrorResponse(400, "Bạn đã check-out hôm nay");
     }
 
-    // Detect face
+    // ===== FACE DETECT =====
     const faceTokenCheck = await detectFace(imageBase64);
-    if (!faceTokenCheck) throw new ErrorResponse(400, "Không nhận diện được khuôn mặt");
+    if (!faceTokenCheck)
+      throw new ErrorResponse(400, "Không nhận diện được khuôn mặt");
 
-    // Compare
     const confidence = await compareFaces(user.faceToken, faceTokenCheck);
-    if (confidence < 75) throw new ErrorResponse(400, "Khuôn mặt không khớp");
+    if (confidence < 75)
+      throw new ErrorResponse(400, "Khuôn mặt không khớp");
 
     attendance.checkOutTime = new Date();
     attendance.checkOutConfidence = confidence;
@@ -199,6 +245,10 @@ exports.checkout = async (req, res) => {
       attendance,
     });
   } catch (err) {
-    return res.status(err.statusCode || 500).json({ message: err.message });
+    return res
+      .status(err.statusCode || 500)
+      .json({ message: err.message });
   }
 };
+
+
