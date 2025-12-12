@@ -1,9 +1,31 @@
-// src/components/student/sidebar/Sidebar.jsx
 import React from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import LogoutButton from "../../LogoutButton";
+import attendanceApi from "../../../api/attendanceApi"; 
+import { toast } from "sonner";
 
 const Sidebar = ({ user, items }) => {
+  const navigate = useNavigate();
+
+  // ==========================================
+  // XỬ LÝ NHẤN "Điểm danh bằng khuôn mặt"
+  // ==========================================
+  const handleFaceAttendance = async () => {
+    try {
+      const res = await attendanceApi.checkFaceStatus();
+
+      if (!res.data.registered) {
+        toast.info("Bạn chưa đăng ký khuôn mặt. Vui lòng đăng ký trước.");
+        return navigate("/student/register-face");
+      }
+
+      return navigate("/student/attendance");
+    } catch (err) {
+      console.error(err);
+      toast.error("Không thể kiểm tra trạng thái khuôn mặt.");
+    }
+  };
+
   // Menu mặc định
   const defaultItems = [
     {
@@ -11,6 +33,12 @@ const Sidebar = ({ user, items }) => {
       icon: "dashboard",
       label: "Bảng điều khiển",
       exact: true,
+    },
+    {
+      // ⭐ Nút điểm danh bằng khuôn mặt (không dùng NavLink)
+      action: handleFaceAttendance,
+      icon: "photo_camera",
+      label: "Điểm danh khuôn mặt",
     },
     {
       to: "/student/history",
@@ -74,32 +102,50 @@ const Sidebar = ({ user, items }) => {
 
         {/* Navigation */}
         <nav className="d-flex flex-column gap-2">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.exact}
-              className={({ isActive }) =>
-                `nav-link-custom ${isActive ? "active" : ""}`
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  <span
-                    className="material-symbols-outlined"
-                    style={{
-                      fontVariationSettings: isActive
-                        ? "'FILL' 1"
-                        : "'FILL' 0",
-                    }}
-                  >
-                    {item.icon}
-                  </span>
+          {navItems.map((item, index) => {
+            // ⭐ Nếu item có action (nút Face Attendance)
+            if (item.action) {
+              return (
+                <button
+                  key={index}
+                  onClick={item.action}
+                  className="nav-link-custom text-start"
+                  style={{ border: "none", background: "none", padding: 0 }}
+                >
+                  <span className="material-symbols-outlined">{item.icon}</span>
                   {item.label}
-                </>
-              )}
-            </NavLink>
-          ))}
+                </button>
+              );
+            }
+
+            // ⭐ Các NavLink bình thường
+            return (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.exact}
+                className={({ isActive }) =>
+                  `nav-link-custom ${isActive ? "active" : ""}`
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    <span
+                      className="material-symbols-outlined"
+                      style={{
+                        fontVariationSettings: isActive
+                          ? "'FILL' 1"
+                          : "'FILL' 0",
+                      }}
+                    >
+                      {item.icon}
+                    </span>
+                    {item.label}
+                  </>
+                )}
+              </NavLink>
+            );
+          })}
         </nav>
       </div>
 

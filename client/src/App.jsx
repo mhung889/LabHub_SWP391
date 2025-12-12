@@ -18,6 +18,8 @@ import MentorStudentsPage from "./pages/mentor/MentorStudentsPage"
 
 
 import LeaveRequestStudent from "./pages/student/LeaveRequestStudent";
+import FaceRegisterPage from './pages/student/FaceRegisterPage';
+import FaceAttendancePage from './pages/student/FaceAttendancePage';
 
 
 function App() {
@@ -34,6 +36,9 @@ function App() {
           <Route path='/student' element={<StudentDashboard />} />
           <Route path='/student/profile' element={<StudentProfile />} />
           <Route path='/student/leave' element={<LeaveRequestStudent />} />
+          <Route path="/student/register-face" element={<FaceRegisterPage />} />
+          <Route path="/student/attendance" element={<FaceAttendancePage />} />
+
 
           {/* mentor */}
           <Route path='/mentor' element={<MentorLayout />}>

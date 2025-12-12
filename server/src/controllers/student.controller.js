@@ -288,3 +288,27 @@ exports.deleteStudent = async (req, res) => {
     return res.status(500).json({ message: err.message });
   }
 };
+
+// =====================================
+// CHECK IF STUDENT HAS FACE TOKEN
+// =====================================
+exports.checkFaceRegistered = async (req, res) => {
+  try {
+    const student = await Student.findById(req.params.id).populate("user");
+
+    if (!student) {
+      return res.status(404).json({ message: "Student not found" });
+    }
+
+    const hasFace = !!student.user.faceToken;
+
+    return res.json({
+      registered: hasFace,
+      faceToken: student.user.faceToken || null,
+    });
+
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+};
+
