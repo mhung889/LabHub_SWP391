@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Container, Row, Col, Form, Button, InputGroup } from 'react-bootstrap';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import '../../components/css/Login.css'
 import authApi from '../../api/authApi';
@@ -153,9 +153,9 @@ const Login = () => {
                   className="text-sm fw-medium"
                   disabled={loading}
                 />
-                <a href="#" className="text-primary-custom text-decoration-underline fw-medium small">
+                <Link to="/forgot-password" className="text-primary-custom text-decoration-underline fw-medium small">
                   Quên mật khẩu?
-                </a>
+                </Link>
               </div>
 
               {/* Submit Button */}

@@ -47,6 +47,14 @@ const authApi = {
     return axiosInstance.patch(`/auth/${userId}/change-password`, data);
   },
 
+  forgotPassword(data) {
+    return axiosInstance.post('/auth/forgot-password', data);
+  },
+
+  resetPassword(data) {
+    return axiosInstance.post('/auth/reset-password', data);
+  },
+
   logout() {
     clearStorage();
   },

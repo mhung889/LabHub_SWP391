@@ -67,7 +67,16 @@ const userSchema = new Schema(
     faceToken: {
       type: String,
       default: null,
-    }
+    },
+    // For password reset flow
+    resetPasswordToken: {
+      type: String,
+      default: null,
+    },
+    resetPasswordExpires: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true, versionKey: false }
 );

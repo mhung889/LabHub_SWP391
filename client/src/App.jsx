@@ -4,6 +4,8 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import HomePage from './pages/HomePage';
 import NotFound from './pages/NotFound';
 import Login from './pages/student/Login';
+import ForgotPassword from './pages/student/ForgotPassword';
+import ResetPassword from './pages/student/ResetPassword';
 import StudentDashboard from './pages/student/StudentDashboard';
 import StudentProfile from './pages/student/StudentProfile';
 import AdminLayout from "./pages/admin/AdminLayout"
@@ -33,6 +35,8 @@ function App() {
 
           {/* student */}
           <Route path='/login' element={<Login />} />
+          <Route path='/forgot-password' element={<ForgotPassword />} />
+          <Route path='/reset-password' element={<ResetPassword />} />
           <Route path='/student' element={<StudentDashboard />} />
           <Route path='/student/profile' element={<StudentProfile />} />
           <Route path='/student/leave' element={<LeaveRequestStudent />} />
