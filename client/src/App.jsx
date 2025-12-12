@@ -8,6 +8,8 @@ import ForgotPassword from './pages/student/ForgotPassword';
 import ResetPassword from './pages/student/ResetPassword';
 import StudentDashboard from './pages/student/StudentDashboard';
 import StudentProfile from './pages/student/StudentProfile';
+import StudentNotifications from './pages/student/StudentNotifications';
+import MentorNotificationsPage from './pages/mentor/MentorNotificationsPage'
 import AdminLayout from "./pages/admin/AdminLayout"
 import AdminOverviewPage from "./pages/admin/AdminOverviewPage"
 import AdminLabsPage from "./pages/admin/AdminLab/AdminLabsPage"
@@ -39,6 +41,7 @@ function App() {
           <Route path='/reset-password' element={<ResetPassword />} />
           <Route path='/student' element={<StudentDashboard />} />
           <Route path='/student/profile' element={<StudentProfile />} />
+          <Route path='/student/notifications' element={<StudentNotifications />} />
           <Route path='/student/leave' element={<LeaveRequestStudent />} />
           <Route path="/student/register-face" element={<FaceRegisterPage />} />
           <Route path="/student/attendance" element={<FaceAttendancePage />} />
@@ -50,6 +53,7 @@ function App() {
             <Route path='dashboard' element={<MentorDashboard />} />
             <Route path='tasks' element={<MentorTasksPage />} />
             <Route path='students' element={<MentorStudentsPage />} />
+                      <Route path='notifications' element={<MentorNotificationsPage />} />
           </Route>
 
 

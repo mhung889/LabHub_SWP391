@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import LogoutButton from "../../LogoutButton";
 import attendanceApi from "../../../api/attendanceApi"; 
@@ -49,6 +49,11 @@ const Sidebar = ({ user, items }) => {
       to: "/student/leave",
       icon: "event_busy",
       label: "Đơn xin nghỉ",
+    },
+    {
+      to: "/student/notifications",
+      icon: "notifications",
+      label: "Thông báo",
     },
     {
       to: "/student/profile",
