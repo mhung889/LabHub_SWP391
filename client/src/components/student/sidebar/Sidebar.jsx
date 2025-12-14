@@ -12,11 +12,11 @@ const Sidebar = ({ user, items }) => {
       label: "Bảng điều khiển",
       exact: true,
     },
-    {
-      to: "/student/history",
-      icon: "history",
-      label: "Lịch sử điểm danh",
-    },
+    // {
+    //   to: "/student/history",
+    //   icon: "history",
+    //   label: "Lịch sử điểm danh",
+    // },
     {
       to: "/student/leave",
       icon: "event_busy",

@@ -55,15 +55,15 @@ export default function AdminLayout() {
         </nav>
 
         <div className='px-4 py-4 border-t border-border flex justify-center'>
-          <Button
+          {/* <Button
             variant='outline'
             size='sm'
             className='w-28 text-black !rounded-[10px] border py-3'
           >
             Đăng xuất
-          </Button>
+          </Button> */}
 
-          {/* <LogoutButton/> */}
+          <LogoutButton/>
         </div>
       </aside>
 
