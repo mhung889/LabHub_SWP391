@@ -15,6 +15,7 @@ import AdminOverviewPage from "./pages/admin/AdminOverviewPage"
 import AdminLabsPage from "./pages/admin/AdminLab/AdminLabsPage"
 import AdminMentorsPage from "./pages/admin/AdminMentorsPage"
 import AdminStudentsPage from "./pages/admin/AdminStudentsPage"
+import AdminMajorsPage from "./pages/admin/AdminMajorsPage"
 import MentorLayout from "./pages/mentor/MentorLayout"
 import MentorDashboard from "./pages/mentor/MentorDashboard"
 import MentorTasksPage from "./pages/mentor/MentorTasksPage"
@@ -60,6 +61,7 @@ function App() {
             <Route path='labs' element={<AdminLabsPage />} />
             <Route path='mentors' element={<AdminMentorsPage />} />
             <Route path='students' element={<AdminStudentsPage />} />
+            <Route path='majors' element={<AdminMajorsPage />} />
           </Route>
 
           <Route path='*' element={<NotFound />} />
