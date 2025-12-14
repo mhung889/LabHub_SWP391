@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { BarChart3, ClipboardList, Users, LogOut } from 'lucide-react';
+import { BarChart3, ClipboardList, Users, LogOut, FileText  } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getAccessToken, clearStorage } from '@/utils/storage';
 import { toast } from 'sonner';
@@ -12,12 +12,14 @@ export default function MentorLayout() {
     { to: '/mentor/dashboard', label: 'Tổng Quan', icon: BarChart3 },
     { to: '/mentor/tasks', label: 'Quản Lý Task', icon: ClipboardList },
     { to: '/mentor/students', label: 'Sinh Viên Của Tôi', icon: Users },
+    { to: '/mentor/leave-requests', label: 'Quản Lý Đơn Nghỉ', icon: FileText },
   ];
 
   const titleMap = {
     '/mentor/dashboard': 'Dashboard',
     '/mentor/tasks': 'Quản Lý Task',
     '/mentor/students': 'Sinh Viên Của Tôi',
+    '/mentor/leave-requests': 'Quản Lý Đơn Nghỉ',
   };
 
   const currentTab = tabs.find((t) => location.pathname.startsWith(t.to));

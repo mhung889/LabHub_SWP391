@@ -15,7 +15,7 @@ const notificationSchema = new Schema(
     },
     sender: {
       type: Schema.Types.ObjectId,
-      ref: 'User', // mentor hoặc admin
+      ref: 'User', // mentor
       required: true,
     },
     lab: {
@@ -29,7 +29,7 @@ const notificationSchema = new Schema(
     },
     status: {
       type: String,
-      enum: ['active', 'archived'],
+      enum: ['active', 'archived',],
       default: 'active',
     },
     // readBy: [

@@ -44,6 +44,7 @@ const leaveRequestSchema = new Schema(
     approver: {
       type: Schema.Types.ObjectId,
       ref: 'User', // mentor của lab
+      default: null
     },
     approvedAt: Date,
     note: String,

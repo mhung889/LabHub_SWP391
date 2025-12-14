@@ -33,8 +33,8 @@ export default function CreateLabModal({
     // validate name
     if (!formData.name.trim()) {
       newErrors.name = 'Tên lab là bắt buộc';
-    } else if (formData.name.trim().length < 10) {
-      newErrors.name = 'Tên lab phải có ít nhất 10 ký tự';
+    } else if (formData.name.trim().length < 5) {
+      newErrors.name = 'Tên lab phải có ít nhất 5 ký tự';
     }
 
     // validate code
