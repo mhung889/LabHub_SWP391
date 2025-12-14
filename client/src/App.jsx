@@ -8,6 +8,22 @@ import ResetPassword from './pages/student/ResetPassword';
 import StudentDashboard from './pages/student/StudentDashboard';
 import StudentProfile from './pages/student/StudentProfile';
 import StudentNotifications from './pages/student/StudentNotifications';
+import MentorNotificationsPage from './pages/mentor/MentorNotificationsPage'
+import AdminLayout from "./pages/admin/AdminLayout"
+import AdminOverviewPage from "./pages/admin/AdminOverviewPage"
+import AdminLabsPage from "./pages/admin/AdminLab/AdminLabsPage"
+import AdminMentorsPage from "./pages/admin/AdminMentorsPage"
+import AdminStudentsPage from "./pages/admin/AdminStudentsPage"
+import MentorLayout from "./pages/mentor/MentorLayout"
+import MentorDashboard from "./pages/mentor/MentorDashboard"
+import MentorTasksPage from "./pages/mentor/MentorTasksPage"
+import MentorStudentsPage from "./pages/mentor/MentorStudentsPage"
+
+
+import LeaveRequestStudent from "./pages/student/LeaveRequestStudent";
+import FaceRegisterPage from './pages/student/FaceRegisterPage';
+import FaceAttendancePage from './pages/student/FaceAttendancePage';
+
 import LeaveRequestStudent from './pages/student/leave-request/LeaveRequestStudent';
 
 import AdminLayout from './pages/admin/AdminLayout';
@@ -34,6 +50,19 @@ function App() {
 
       <BrowserRouter>
         <Routes>
+          <Route path='/' element={<HomePage />} />
+
+          {/* student */}
+          <Route path='/login' element={<Login />} />
+          <Route path='/forgot-password' element={<ForgotPassword />} />
+          <Route path='/reset-password' element={<ResetPassword />} />
+          <Route path='/student' element={<StudentDashboard />} />
+          <Route path='/student/profile' element={<StudentProfile />} />
+          <Route path='/student/notifications' element={<StudentNotifications />} />
+          <Route path='/student/leave' element={<LeaveRequestStudent />} />
+          <Route path="/student/register-face" element={<FaceRegisterPage />} />
+          <Route path="/student/attendance" element={<FaceAttendancePage />} />
+
           {/* public */}
           <Route path="/login" element={<Login />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />

@@ -47,6 +47,28 @@ const labSchema = new Schema(
       ref: 'User', // role = mentor
       default: null,
     },
+    attendanceRule: {
+      checkInEarlyMinutes: {
+        type: Number,
+        default: 15, // cho check-in sớm 15p
+        min: 0,
+      },
+      checkInLateMinutes: {
+        type: Number,
+        default: 15, // cho check-in trễ 15p
+        min: 0,
+      },
+      checkOutEarlyMinutes: {
+        type: Number,
+        default: 15,
+        min: 0,
+      },
+      checkOutLateMinutes: {
+        type: Number,
+        default: 30,
+        min: 0,
+      },
+    },
   },
   {
     timestamps: true,

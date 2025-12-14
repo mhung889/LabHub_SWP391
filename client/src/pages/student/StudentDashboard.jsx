@@ -4,38 +4,37 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { getAccessToken, clearStorage } from "../../utils/storage";
 import authApi from "../../api/authApi";
-import "../../components/css/StudentDashboard.css"
+import attendanceApi from "../../api/attendanceApi"; // 🟢 Thêm API check-face
+import "../../components/css/StudentDashboard.css";
 import Sidebar from "../../components/student/sidebar/Sidebar";
-
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // ==========================================
+  // LẤY PROFILE USER
+  // ==========================================
   useEffect(() => {
-    // Check if user is logged in
     const token = getAccessToken();
     if (!token) {
       navigate("/login");
       return;
     }
 
-    // Get user ID from localStorage
     const userInfo = JSON.parse(localStorage.getItem("userInfo") || "{}");
     if (!userInfo._id) {
       navigate("/login");
       return;
     }
 
-    // Fetch user profile from backend
     const fetchUserProfile = async () => {
       try {
         const response = await authApi.getUserProfile(userInfo._id);
         setUser(response.data);
       } catch (error) {
         console.error("Lỗi khi lấy thông tin user:", error);
-        // Fallback to localStorage if API fails
         setUser(userInfo);
       } finally {
         setLoading(false);
@@ -45,23 +44,47 @@ const StudentDashboard = () => {
     fetchUserProfile();
   }, [navigate]);
 
+  // ==========================================
+  // ĐĂNG XUẤT
+  // ==========================================
   const handleLogout = () => {
     clearStorage();
     navigate("/login");
     toast.success("Đã đăng xuất");
   };
 
+  // ==========================================
+  // XỬ LÝ CLICK ĐIỂM DANH KHUÔN MẶT
+  // ==========================================
+  const handleAttendanceClick = async () => {
+    try {
+      const res = await attendanceApi.checkFaceStatus();
+
+      if (!res.data.registered) {
+        toast.info("Bạn chưa đăng ký khuôn mặt. Vui lòng đăng ký trước.");
+        return navigate("/student/register-face");
+      }
+
+      return navigate("/student/attendance");
+    } catch (err) {
+      console.error(err);
+      toast.error("Không thể kiểm tra trạng thái khuôn mặt.");
+    }
+  };
+
+  // ==========================================
+  // LOADING
+  // ==========================================
   if (loading || !user)
     return <div className="p-5 text-center">Đang tải...</div>;
 
+  // ==========================================
+  // RENDER UI
+  // ==========================================
   return (
     <div className="d-flex w-100 overflow-hidden">
-      {/* --- Sidebar for student--- */}
-      
       <Sidebar user={user} />
 
-
-      {/* --- Main Content --- */}
       <main
         className="flex-grow-1 p-4 p-lg-5"
         style={{ backgroundColor: "#f6f7f8" }}
@@ -88,6 +111,7 @@ const StudentDashboard = () => {
 
                 <Button
                   variant="primary"
+                  onClick={handleAttendanceClick}
                   className="main-btn bg-primary-custom border-0 px-5 d-flex align-items-center gap-3"
                 >
                   <span className="material-symbols-outlined fs-4">
@@ -127,13 +151,14 @@ const StudentDashboard = () => {
                     </small>
                     <small className="text-dark">75%</small>
                   </div>
-                  {/* React Bootstrap ProgressBar */}
+
                   <ProgressBar
                     now={75}
                     variant="info"
                     style={{ height: "8px", backgroundColor: "#e2e8f0" }}
                     className="rounded-pill"
                   />
+
                   <style>{`.progress-bar { background-color: #2b8cee !important; }`}</style>
                 </div>
               </div>
@@ -155,7 +180,9 @@ const StudentDashboard = () => {
                       </span>
                     </div>
                     <div className="flex-grow-1">
-                      <p className="fw-bold text-dark mb-0">Toán cao cấp</p>
+                      <p className="fw-bold text-dark mb-0">
+                        Toán cao cấp
+                      </p>
                       <small className="text-secondary">10:00 - 11:30</small>
                     </div>
                     <span className="badge bg-success bg-opacity-10 text-success rounded-pill px-3 py-2">
@@ -171,7 +198,9 @@ const StudentDashboard = () => {
                       </span>
                     </div>
                     <div className="flex-grow-1">
-                      <p className="fw-bold text-dark mb-0">Vật lý lượng tử</p>
+                      <p className="fw-bold text-dark mb-0">
+                        Vật lý lượng tử
+                      </p>
                       <small className="text-secondary">13:00 - 14:30</small>
                     </div>
                     <span className="badge bg-secondary bg-opacity-10 text-secondary rounded-pill px-3 py-2">

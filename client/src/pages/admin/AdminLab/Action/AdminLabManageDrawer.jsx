@@ -18,7 +18,8 @@ export default function AdminLabManageDrawer({
 
   console.log(lab)
 
-  const [activeTab, setActiveTab] = useState('info'); // "info" | "students"
+  const [activeTab, setActiveTab] = useState('info'); // "info" | "students" | "attendance"
+
 
   const [majors, setMajors] = useState([]);
   const [mentors, setMentors] = useState([]);
@@ -32,6 +33,13 @@ export default function AdminLabManageDrawer({
     major: '',
     mentor: '',
     description: '',
+
+    attendanceRule: {
+      checkInEarlyMinutes: 15,
+      checkInLateMinutes: 10,
+      checkOutEarlyMinutes: 0,
+      checkOutLateMinutes: 15,
+    },
   });
 
   const [selectedStudentId, setSelectedStudentId] = useState('');
@@ -59,6 +67,17 @@ export default function AdminLabManageDrawer({
         mentor:
           typeof lab.mentor === 'string' ? lab.mentor : lab.mentor?._id || '',
         description: lab.description || '',
+
+        attendanceRule: {
+          checkInEarlyMinutes:
+            lab.attendanceRule?.checkInEarlyMinutes ?? 15,
+          checkInLateMinutes:
+            lab.attendanceRule?.checkInLateMinutes ?? 10,
+          checkOutEarlyMinutes:
+            lab.attendanceRule?.checkOutEarlyMinutes ?? 0,
+          checkOutLateMinutes:
+            lab.attendanceRule?.checkOutLateMinutes ?? 15,
+        },
       });
     }
   }, [lab, isOpen]);
@@ -140,6 +159,17 @@ export default function AdminLabManageDrawer({
     }));
   };
 
+  const handleRuleChange = (field, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      attendanceRule: {
+        ...prev.attendanceRule,
+        [field]: parseInt(value || '0', 10),
+      },
+    }));
+  };
+
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!lab?._id) return;
@@ -161,6 +191,34 @@ export default function AdminLabManageDrawer({
       setSavingInfo(false);
     }
   };
+
+  const handleAttendanceSubmit = async () => {
+    try {
+      setSavingInfo(true);
+
+      await labApi.updateAttendanceRule(lab._id, {
+        checkInEarlyMinutes:
+          formData.attendanceRule.checkInEarlyMinutes,
+        checkInLateMinutes:
+          formData.attendanceRule.checkInLateMinutes,
+        checkOutEarlyMinutes:
+          formData.attendanceRule.checkOutEarlyMinutes,
+        checkOutLateMinutes:
+          formData.attendanceRule.checkOutLateMinutes,
+      });
+
+      toast.success("Cập nhật cấu hình điểm danh thành công");
+
+      if (onUpdated) await onUpdated();
+    } catch (err) {
+      toast.error(
+        err.response?.data?.message || "Cập nhật cấu hình thất bại"
+      );
+    } finally {
+      setSavingInfo(false);
+    }
+  };
+
 
   const handleAddStudentClick = async () => {
     if (!selectedStudentId || !lab?._id) return;
@@ -224,25 +282,33 @@ export default function AdminLabManageDrawer({
           <div className='inline-flex rounded-full bg-muted p-1 text-sm'>
             <button
               type='button'
-              className={`rounded-full px-4 py-1.5 ${
-                activeTab === 'info'
-                  ? 'bg-background font-medium shadow-sm'
-                  : 'text-muted-foreground'
-              }`}
+              className={`rounded-full px-4 py-1.5 ${activeTab === 'info'
+                ? 'bg-background font-medium shadow-sm'
+                : 'text-muted-foreground'
+                }`}
               onClick={() => setActiveTab('info')}
             >
               Thông tin lab
             </button>
             <button
               type='button'
-              className={`rounded-full px-4 py-1.5 ${
-                activeTab === 'students'
-                  ? 'bg-background font-medium shadow-sm'
-                  : 'text-muted-foreground'
-              }`}
+              className={`rounded-full px-4 py-1.5 ${activeTab === 'students'
+                ? 'bg-background font-medium shadow-sm'
+                : 'text-muted-foreground'
+                }`}
               onClick={() => setActiveTab('students')}
             >
               Sinh viên
+            </button>
+            <button
+              type="button"
+              className={`rounded-full px-4 py-1.5 ${activeTab === 'attendance'
+                ? 'bg-background font-medium shadow-sm'
+                : 'text-muted-foreground'
+                }`}
+              onClick={() => setActiveTab('attendance')}
+            >
+              Cấu hình điểm danh
             </button>
           </div>
         </div>
@@ -530,6 +596,106 @@ export default function AdminLabManageDrawer({
               )}
             </div>
           )}
+
+          {activeTab === 'attendance' && (
+            <div className="space-y-4">
+              <div className="rounded-lg border border-border p-4">
+                <h3 className="mb-3 text-sm font-semibold text-foreground">
+                  ⏱ Cấu hình thời gian điểm danh
+                </h3>
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="mb-1 block text-sm text-foreground">
+                      Check-in sớm (phút)
+                    </label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={formData.attendanceRule.checkInEarlyMinutes}
+                      onChange={(e) =>
+                        handleRuleChange(
+                          "checkInEarlyMinutes",
+                          e.target.value
+                        )
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-sm text-foreground">
+                      Check-in muộn (phút)
+                    </label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={formData.attendanceRule.checkInLateMinutes}
+                      onChange={(e) =>
+                        handleRuleChange(
+                          "checkInLateMinutes",
+                          e.target.value
+                        )
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-sm text-foreground">
+                      Check-out sớm (phút)
+                    </label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={formData.attendanceRule.checkOutEarlyMinutes}
+                      onChange={(e) =>
+                        handleRuleChange(
+                          "checkOutEarlyMinutes",
+                          e.target.value
+                        )
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-sm text-foreground">
+                      Check-out muộn (phút)
+                    </label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={formData.attendanceRule.checkOutLateMinutes}
+                      onChange={(e) =>
+                        handleRuleChange(
+                          "checkOutLateMinutes",
+                          e.target.value
+                        )
+                      }
+                    />
+                  </div>
+                </div>
+
+                {/* ACTION BUTTON */}
+                <div className="mt-6 flex justify-end gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={onClose}
+                  >
+                    Đóng
+                  </Button>
+
+                  <Button
+                    type="button"
+                    onClick={handleAttendanceSubmit}
+                    disabled={savingInfo}
+                  >
+                    {savingInfo ? "Đang lưu..." : "Lưu cấu hình"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
     </div>

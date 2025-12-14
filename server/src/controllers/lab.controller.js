@@ -401,3 +401,67 @@ exports.getLabAll = async (req, res) => {
     });
   }
 };
+
+// =====================================
+// UPDATE ATTENDANCE RULE
+// =====================================
+exports.updateAttendanceRule = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const {
+      checkInEarlyMinutes,
+      checkInLateMinutes,
+      checkOutEarlyMinutes,
+      checkOutLateMinutes,
+    } = req.body;
+
+    const lab = await LabModel.findById(id);
+    if (!lab) {
+      return res.status(404).json({
+        message: "Lab không tồn tại",
+      });
+    }
+
+    // ===== Validate input (basic) =====
+    const values = [
+      checkInEarlyMinutes,
+      checkInLateMinutes,
+      checkOutEarlyMinutes,
+      checkOutLateMinutes,
+    ];
+
+    if (values.some(v => v === undefined)) {
+      return res.status(400).json({
+        message: "Thiếu thông tin cấu hình thời gian điểm danh",
+      });
+    }
+
+    if (values.some(v => typeof v !== "number" || v < 0)) {
+      return res.status(400).json({
+        message: "Thời gian cấu hình phải là số >= 0",
+      });
+    }
+
+    // ===== Update rule =====
+    lab.attendanceRule = {
+      checkInEarlyMinutes,
+      checkInLateMinutes,
+      checkOutEarlyMinutes,
+      checkOutLateMinutes,
+    };
+
+    await lab.save();
+
+    return res.status(200).json({
+      message: "Cập nhật cấu hình điểm danh thành công",
+      attendanceRule: lab.attendanceRule,
+    });
+  } catch (error) {
+    console.error("Update attendance rule error:", error);
+    return res.status(500).json({
+      message: "Internal server error",
+    });
+  }
+};
+

@@ -1,33 +1,31 @@
-// src/components/student/sidebar/Sidebar.jsx
 import React, { useEffect, useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import LogoutButton from "../../LogoutButton";
+import attendanceApi from "../../../api/attendanceApi"; 
+import { toast } from "sonner";
 
 const Sidebar = ({ user, items }) => {
-  const [unreadCount, setUnreadCount] = useState(0);
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    let mounted = true;
-    const load = async () => {
-      try {
-        if (!user) return;
-        const { default: api } = await import('../../../api/notificationApi');
-        const res = await api.getStudentNotifications();
-        if (mounted) setUnreadCount(res.data.unreadCount || 0);
-      } catch (err) {
-        // ignore
+  // ==========================================
+  // XỬ LÝ NHẤN "Điểm danh bằng khuôn mặt"
+  // ==========================================
+  const handleFaceAttendance = async () => {
+    try {
+      const res = await attendanceApi.checkFaceStatus();
+
+      if (!res.data.registered) {
+        toast.info("Bạn chưa đăng ký khuôn mặt. Vui lòng đăng ký trước.");
+        return navigate("/student/register-face");
       }
-    };
-    load();
-    const onRead = (e) => {
-      try {
-        const c = Number(e?.detail?.unreadCount);
-        if (!Number.isNaN(c)) setUnreadCount(c);
-      } catch (_) {}
-    };
-    window.addEventListener('notificationRead', onRead);
-    return () => { mounted = false };
-  }, [user]);
+
+      return navigate("/student/attendance");
+    } catch (err) {
+      console.error(err);
+      toast.error("Không thể kiểm tra trạng thái khuôn mặt.");
+    }
+  };
+
   // Menu mặc định
   const defaultItems = [
     {
@@ -36,11 +34,17 @@ const Sidebar = ({ user, items }) => {
       label: "Bảng điều khiển",
       exact: true,
     },
-    // {
-    //   to: "/student/history",
-    //   icon: "history",
-    //   label: "Lịch sử điểm danh",
-    // },
+    {
+      // ⭐ Nút điểm danh bằng khuôn mặt (không dùng NavLink)
+      action: handleFaceAttendance,
+      icon: "photo_camera",
+      label: "Điểm danh khuôn mặt",
+    },
+    {
+      to: "/student/history",
+      icon: "history",
+      label: "Lịch sử điểm danh",
+    },
     {
       to: "/student/leave",
       icon: "event_busy",
@@ -103,35 +107,50 @@ const Sidebar = ({ user, items }) => {
 
         {/* Navigation */}
         <nav className="d-flex flex-column gap-2">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.exact}
-              className={({ isActive }) =>
-                `nav-link-custom ${isActive ? "active" : ""}`
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  <span
-                    className="material-symbols-outlined"
-                    style={{
-                      fontVariationSettings: isActive
-                        ? "'FILL' 1"
-                        : "'FILL' 0",
-                    }}
-                  >
-                    {item.icon}
-                  </span>
+          {navItems.map((item, index) => {
+            // ⭐ Nếu item có action (nút Face Attendance)
+            if (item.action) {
+              return (
+                <button
+                  key={index}
+                  onClick={item.action}
+                  className="nav-link-custom text-start"
+                  style={{ border: "none", background: "none", padding: 0 }}
+                >
+                  <span className="material-symbols-outlined">{item.icon}</span>
                   {item.label}
-                  {item.to === '/student/notifications' && unreadCount > 0 && (
-                    <span className="badge bg-danger ms-2">{unreadCount}</span>
-                  )}
-                </>
-              )}
-            </NavLink>
-          ))}
+                </button>
+              );
+            }
+
+            // ⭐ Các NavLink bình thường
+            return (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.exact}
+                className={({ isActive }) =>
+                  `nav-link-custom ${isActive ? "active" : ""}`
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    <span
+                      className="material-symbols-outlined"
+                      style={{
+                        fontVariationSettings: isActive
+                          ? "'FILL' 1"
+                          : "'FILL' 0",
+                      }}
+                    >
+                      {item.icon}
+                    </span>
+                    {item.label}
+                  </>
+                )}
+              </NavLink>
+            );
+          })}
         </nav>
       </div>
 

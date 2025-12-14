@@ -31,6 +31,8 @@ const labApi = {
   removeStudentFromLab: (id, data) =>
     axiosInstance.delete(`/labs/${id}/remove-student`, { data }),
 
+  updateAttendanceRule: (labId, payload) =>
+    axiosInstance.put(`/labs/${labId}/attendance-rule`, payload),
 
 };
 
