@@ -1,19 +1,41 @@
 import React, { useEffect, useState } from 'react';
 import { getNotifications, createNotification, updateNotification, deleteNotification } from '../../api/notificationApi';
 import labApi from '../../api/labApi';
+import mentorApi from '../../api/mentorApi';
+import { getUserInfo } from '../../utils/storage';
 import { Card, Button, Form, Modal } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 
 export default function MentorNotificationsPage(){
   const [list, setList] = useState([]);
   const [search, setSearch] = useState('');
-  const [selectedLab, setSelectedLab] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({ title:'', content:'', isImportant:false, lab: ''});
   const [labs, setLabs] = useState([]);
+  const [myLab, setMyLab] = useState(null);
 
   useEffect(()=>{ load() },[])
+
+  useEffect(() => {
+    const loadMyLab = async () => {
+      try {
+        const user = getUserInfo();
+        if (!user || user.role !== 'mentor' || !user._id) return;
+        const res = await mentorApi.getMentorById(user._id);
+        // mentorApi returns mentor info with `labs` array
+        const mentorLabs = (res.data && (res.data.labs || res.data)) || res.data?.labs || [];
+        if (Array.isArray(mentorLabs) && mentorLabs.length > 0) {
+          setMyLab(mentorLabs[0]);
+        } else {
+          setMyLab(null);
+        }
+      } catch (err) {
+        console.warn('Could not load mentor lab', err);
+      }
+    }
+    loadMyLab();
+  }, []);
 
   useEffect(()=>{
     const loadLabs = async ()=>{
@@ -40,7 +62,12 @@ export default function MentorNotificationsPage(){
     }
   }
 
-  const openNew = ()=>{ setEditing(null); setForm({title:'',content:'',isImportant:false, lab:''}); setShowModal(true)}
+  const openNew = ()=>{
+    if(!myLab){ alert('Bạn chưa có phòng'); return }
+    setEditing(null);
+    setForm({title:'',content:'',isImportant:false, lab: myLab._id || myLab.id || ''});
+    setShowModal(true);
+  }
   const openEdit = (n)=>{
     const labId = n.lab && (typeof n.lab === 'string' ? n.lab : n.lab._id || n.lab);
     setEditing(n);
@@ -66,7 +93,7 @@ export default function MentorNotificationsPage(){
     load(search);
   }
 
-  const handleSearch = (e)=>{ e.preventDefault(); load(search, selectedLab) }
+  const handleSearch = (e)=>{ e.preventDefault(); load(search) }
 
   return (
     <div className="space-y-6">
@@ -79,15 +106,9 @@ export default function MentorNotificationsPage(){
 
       <Card className="p-4 mb-3">
         <Form onSubmit={handleSearch} className="d-flex gap-2 align-items-center">
-          <Form.Select value={selectedLab} onChange={e=>setSelectedLab(e.target.value)} style={{maxWidth: 240}}>
-            <option value="">-- Tất cả Lab --</option>
-            {labs.map(l=> (
-              <option key={l._id || l.id} value={l._id || l.id}>{l.name || l.title || l.labName || (l.code && l.code)}</option>
-            ))}
-          </Form.Select>
           <Form.Control placeholder="Tìm kiếm..." value={search} onChange={e=>setSearch(e.target.value)} />
           <Button type="submit">Tìm</Button>
-          <Button variant="secondary" type="button" onClick={()=>{ setSearch(''); setSelectedLab(''); load(); }}>Xóa</Button>
+          <Button variant="secondary" type="button" onClick={()=>{ setSearch(''); load(); }}>Xóa</Button>
         </Form>
       </Card>
 
@@ -124,13 +145,8 @@ export default function MentorNotificationsPage(){
               <Form.Control as="textarea" rows={4} value={form.content} onChange={e=>setForm({...form, content: e.target.value})} />
             </Form.Group>
             <Form.Group className="mb-2">
-              <Form.Label>Chọn Lab</Form.Label>
-              <Form.Select value={form.lab} onChange={e=>setForm({...form, lab: e.target.value})}>
-                <option value="">-- Chọn lab --</option>
-                {labs.map(l=> (
-                  <option key={l._id || l.id} value={l._id || l.id}>{l.name || l.title || l.labName || (l.code && l.code)}</option>
-                ))}
-              </Form.Select>
+              <Form.Label>Phòng Lab</Form.Label>
+              <Form.Control value={myLab ? (myLab.name || myLab.title || myLab.labName || myLab.code) : ''} disabled />
             </Form.Group>
           </Form>
         </Modal.Body>

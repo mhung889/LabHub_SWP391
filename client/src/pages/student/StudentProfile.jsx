@@ -13,6 +13,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import authApi from "../../api/authApi";
 import { getAccessToken } from "../../utils/storage";
+import { toast } from 'sonner';
 
 import "../../components/css/StudentProfile.css";
 import Sidebar from "../../components/student/sidebar/Sidebar";
@@ -25,7 +26,6 @@ const StudentProfile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordData, setPasswordData] = useState({
@@ -99,13 +99,11 @@ const StudentProfile = () => {
   const handleEdit = () => {
     setIsEditing(true);
     setError("");
-    setSuccess("");
   };
 
   const handleCancel = () => {
     setIsEditing(false);
     setError("");
-    setSuccess("");
 
     if (user && student) {
       setFormData({
@@ -132,7 +130,6 @@ const StudentProfile = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    setSuccess("");
     setSaving(true);
 
     try {
@@ -182,9 +179,8 @@ const StudentProfile = () => {
         });
       }
 
-      setSuccess(response.message || "Cập nhật hồ sơ thành công!");
+      toast.success(response.message || "Cập nhật thông tin thành công");
       setIsEditing(false);
-      setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
       console.error("Update profile error:", err);
       const errorMessage =
@@ -212,7 +208,6 @@ const StudentProfile = () => {
     }
 
     setError("");
-    setSuccess("");
     setUploadingAvatar(true);
 
     try {
@@ -226,8 +221,7 @@ const StudentProfile = () => {
         setStudent(response.student);
       }
 
-      setSuccess(response.message || "Cập nhật avatar thành công!");
-      setTimeout(() => setSuccess(""), 3000);
+      toast.success(response.message || "Cập nhật avatar thành công!");
     } catch (err) {
       console.error("Upload avatar error:", err);
       const errorMessage =
@@ -252,7 +246,6 @@ const StudentProfile = () => {
   const handleChangePassword = async (e) => {
     e.preventDefault();
     setError("");
-    setSuccess("");
 
     if (
       !passwordData.currentPassword ||
@@ -285,14 +278,13 @@ const StudentProfile = () => {
         newPassword: passwordData.newPassword,
       });
 
-      setSuccess("Đổi mật khẩu thành công!");
+      toast.success("Đổi mật khẩu thành công");
       setShowPasswordModal(false);
       setPasswordData({
         currentPassword: "",
         newPassword: "",
         confirmPassword: "",
       });
-      setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
       console.error("Change password error:", err);
       const errorMessage =
@@ -368,11 +360,7 @@ const StudentProfile = () => {
               {error}
             </Alert>
           )}
-          {success && (
-            <Alert variant="success" dismissible onClose={() => setSuccess("")}>
-              {success}
-            </Alert>
-          )}
+          
 
           <Row className="g-4">
             {/* Profile Card */}
@@ -888,15 +876,7 @@ const StudentProfile = () => {
                 {error}
               </Alert>
             )}
-            {success && (
-              <Alert
-                variant="success"
-                dismissible
-                onClose={() => setSuccess("")}
-              >
-                {success}
-              </Alert>
-            )}
+            
             <Form.Group className="mb-3">
               <Form.Label>Mật khẩu hiện tại *</Form.Label>
               <Form.Control
