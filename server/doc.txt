@@ -1,0 +1,2256 @@
+UC-01 – LOGIN
+Field
+Description
+Use Case ID
+UC-01
+Use Case Name
+Login
+Primary Actor
+OJT, Mentor, Student
+Description
+Allows a user (OJT, Mentor, or Student) to authenticate into the Lab Internship Management System using email and password. The system validates the credentials, checks account status, and establishes a login session with the correct role and permissions.
+Preconditions
+- The user account has been created in the system with a valid email, password, and role (OJT / Mentor / Student).
+- The account is not locked or disabled.
+- The user is currently not logged in on this device/session.
+Postconditions
+- A valid authenticated session is created for the user.
+- The system knows the user’s role and permissions (OJT / Mentor / Student).
+- The user is redirected to the Homepage (UC-04).
+Trigger
+The user browses to the application URL and opens the Login screen.
+Normal Flow
+1. The user opens the Login page.
+2. The system displays the login form with the following input fields:
+  - Email (required, text, format: valid email, max 100 chars).
+  - Password (required, password type, min 8 chars, max 64 chars).
+  - (Optional) “Remember me” checkbox (boolean).
+3. The user enters email and password, optionally checks “Remember me”.
+4. The user clicks [Login] button.
+5. The system performs front-end validation:
+  - If Email is empty, mark field as error “Email is required”.
+  - If Email format is invalid, error “Invalid email format”.
+  - If Password is empty, error “Password is required”.
+ , If any front-end validation fails, the system does not send request to server and displays validation messages.
+6. If basic validation passes, the system sends a Login API request containing:
+  - email
+  - password
+  - device / browser info (optional, for audit).
+7. The server receives the request and performs backend validation:
+  - Check if an account with this email exists and is not soft-deleted.
+  - If no user found, return error “Account not found”.
+  - If user exists, verify hashed password.
+  - Check if account status = Active (not Locked, not Suspended).
+8. If all checks are valid, the system:
+  - Generates an access token / session ID.
+  - Loads user profile and role(s): OJT / Mentor / Student.
+  - Stores session in server / token store.
+  - If “Remember me” = true, issues longer-lived refresh token / cookie.
+9. The system logs a successful login entry (userId, timestamp, IP, device).
+10. The system returns success response and redirects the user to Homepage with proper role-based menu and permissions.
+Alternative Flow
+4a. User presses Enter instead of clicking [Login]
+- The system treats it the same as clicking [Login] and continues from Step 5.
+
+7a. Account is found but status = Locked / Inactive
+- The system rejects login and returns message “Your account is locked. Please contact administrator.”
+- No session is created.
+
+7b. Password incorrect
+- The system increments a failed login counter for this account.
+- If failed counter < configured threshold, system returns: “Email or password is incorrect.”
+- If failed counter reaches threshold, system may lock the account and inform user: “Your account has been locked due to too many failed attempts.”
+Exception Flow
+6e. Network error or server timeout
+- The system shows a generic message: “Unable to connect to server. Please try again later.”
+
+7e. Database error during user lookup
+- The system logs the technical error internally.
+- The system returns a user-friendly error: “Login failed due to system error.”
+Non-Functional
+- Passwords must be stored using secure hashing (e.g., bcrypt).
+- Login response time under normal load: ≤ 3 seconds.
+- System must protect against brute-force login attempts (account lockout, rate limiting).
+
+
+UC-02 – CHANGE PASSWORD
+Field
+Description
+Use Case ID
+UC-02
+Use Case Name
+Change Password
+Primary Actor
+OJT, Mentor, Student
+Description
+Allows a logged-in user to change their current password to a new one. The system verifies the old password, validates the new password according to security policy, and updates it securely in the database.
+Preconditions
+- User is logged in (valid session).
+- User account is Active (not locked, not deleted).
+Postconditions
+- User’s password is updated in the system.
+- Any existing sessions/tokens may be invalidated according to security policy (optional).
+Trigger
+User selects “Change Password” from profile or account settings menu.
+Normal Flow
+1. The user opens the Change Password screen.
+2. The system displays the form with fields:
+  - Current Password (required, password type).
+  - New Password (required, must follow policy: e.g. ≥ 8 chars, include uppercase/lowercase/digit/special).
+  - Confirm New Password (required, must match New Password).
+3. The user fills in all fields and clicks [Save].
+4. The system performs client-side validation:
+  - All fields are required, show “This field is required” if empty.
+  - New Password and Confirm New Password must match, show “Passwords do not match”.
+  - New Password must satisfy complexity rules, show detailed hint if not satisfied.
+5. If validation passes, the system sends change-password request including:
+  - userId (from session).
+  - currentPassword (encrypted in transit).
+  - newPassword.
+6. The server receives the request and verifies:
+  - The session/token is valid and not expired.
+  - The currentPassword matches the existing hashed password.
+7. If current password is correct and new password is valid, the system:
+  - Hashes the new password with secure algorithm.
+  - Updates the password in the User table/collection.
+  - Optionally resets failedLoginCounter to 0.
+  - Optionally invalidates other active sessions.
+8. The system logs a password change event (but never stores raw password).
+9. The system returns success message: “Your password has been changed successfully.”
+10. Optionally, the system sends an email to the user: “Your password was changed at [time]. If this was not you, contact support.”
+Alternative Flow
+6a. Current password incorrect
+- The system does not update password.
+- Returns error: “Current password is incorrect.”
+- May increase a “failed password change attempt” counter (for monitoring).
+
+4a. New password same as current password
+- The system rejects the request and shows: “New password must be different from current password.”
+Exception Flow
+7e. Database update fails (e.g., deadlock, connection loss)
+- The system logs the technical error.
+- Returns message: “Unable to change password due to system error. Please try again later.”
+Non-Functional
+- New password must be stored using strong hashing.
+- Screen should not display password in clear text.
+- Input fields must support “show/hide password” toggle for usability.
+
+
+UC-03 – FORGET PASSWORD
+Field
+Description
+Use Case ID
+UC-03
+Use Case Name
+Forget Password
+Primary Actor
+OJT, Mentor, Student
+Description
+Allows a user who forgets their password to reset it via email. The system verifies the email, generates a secure token, sends a reset link, and allows the user to set a new password.
+Preconditions
+- User’s email is already registered and active in the system.
+- SMTP/email service is configured and available.
+Postconditions
+- A reset token is generated, stored with expiry time (e.g., 30 minutes).
+- If user completes the flow, the password is updated successfully.
+Trigger
+The user clicks “Forgot Password” on the Login screen.
+Normal Flow
+Phase 1 – Request Reset Link
+1. The user clicks [Forgot Password] link.
+2. The system opens a form with a single field:
+  - Email (required, email format).
+3. The user enters their email and submits.
+4. System validates:
+  - Email not empty.
+  - Email format valid.
+5. The system searches for a user with that email:
+  - If exists and active, continue.
+  - If not found, go to Alternative Flow 5a.
+6. The system generates a secure random reset token and its expiry timestamp.
+7. The system saves the token in database linked with userId and status = “Active”.
+8. The system constructs a reset password link, for example:
+  https://…/reset-password?token=XYZ.
+9. The system sends an email to the user including:
+  - Subject: “Password Reset Request”.
+  - Body: greeting, instructions, reset link, expiry time.
+10. The system shows a message: “If this email is registered, a reset link has been sent.” (avoid revealing whether email exists).
+
+Phase 2 – Reset Password via Link
+11. The user opens email and clicks the reset link.
+12. The system receives token and validates it:
+  - Token exists.
+  - Token status = Active.
+  - Token not expired.
+13. If token is valid, the system displays Reset Password form with fields:
+  - New Password (required, policy rules).
+  - Confirm New Password (required, must match).
+14. The user enters new password and confirmation, then submits.
+15. System validates passwords (required, complexity, matching).
+16. If valid, the system:
+  - Hashes new password.
+  - Updates user’s password in DB.
+  - Sets token status = “Used”.
+17. The system displays success message and redirect option to Login page.
+Alternative Flow
+5a. Email not found or account inactive
+- For security, the system still shows generic message: “If this email is registered, a reset link has been sent.”
+- Internally, no token is generated.
+
+12a. Token expired
+- System marks token as “Expired”.
+- System displays message: “Reset link has expired. Please request a new one.”
+
+12b. Token already used / invalid
+- System displays error: “Reset link is invalid.” and suggests requesting again.
+Exception Flow
+9e. Email sending failss
+- System logs the error.
+- Optionally informs user: “We could not send an email at this time. Please try again later.”
+
+16e. Database update error when saving new password
+- System logs the error.
+- Returns: “Password reset failed due to system error.”
+Non-Functional
+- Reset token must be cryptographically secure and random.
+- Token must expire automatically after configured time.
+
+
+UC-04 – VIEW HOMEPAGE (ROLE-BASED DASHBOARD)
+Field
+Description
+Use Case ID
+UC-04
+Use Case Name
+View Homepage
+Primary Actor
+OJT, Mentor, Student
+Description
+Displays the role-based dashboard after successful login. For OJT, shows system-wide overview; for Mentor, shows assigned students and pending tasks; for Student, shows today’s schedule, attendance status, and assigned tasks.
+Preconditions
+- User is authenticated (UC-01 completed).
+- User’s role and basic profile are loaded successfully.
+Postconditions
+- Homepage is rendered with widgets corresponding to user’s role.
+- Navigation menu is initialized according to permissions.
+Trigger
+Successful login or user clicks on “Home” in the navigation menu.
+Normal Flow
+1. User logs in or clicks Home.
+2. The system reads the current user role from session/token.
+3. The system determines which dashboard layout to use:
+  - OJT Dashboard.
+  - Mentor Dashboard.
+  - Student Dashboard.
+4. The system loads necessary summary data depending on role:
+  For OJT:
+  - Total number of Departments, Mentors, Students.
+  - Today’s attendance statistics (present, absent, late).
+  - Number of pending evaluations, pending leave approvals (if any).
+  For Mentor:
+  - Count of assigned students.
+  - Today’s attendance status of assigned students (e.g. who has not checked-in).
+  - List of active tasks created by this mentor.
+  For Student:
+  - Today’s required working hours and check-in/check-out window.
+  - Today’s attendance status (not yet, checked-in, checked-out, late).
+  - List of assigned tasks with due dates.
+  - Latest notifications.
+5. The system renders the homepage view with:
+  - Role-based navigation menu.
+  - Dashboard widgets/cards.
+  - Quick links (e.g. “Check-in now”, “View tasks”, “View leave requests”).
+6. User can interact with widgets (click to go to detail screens).
+Alternative Flow
+4a. Some dashboard data sources return empty
+- The system still loads the page but shows “No data” placeholders for those widgets.
+Exception Flow
+4e. Error when fetching dashboard summary data (e.g. DB timeout)
+- The system logs the error.
+- The system may show partial data and display a warning message like: “Some dashboard information could not be loaded.”
+Non-Functional
+- Homepage should load within 5 seconds under typical load.
+- Dashboard API calls should be optimized with caching / pagination where appropriate.
+
+
+UC-05 – VIEW USER LIST (ADMIN VIEW)
+Field
+Description
+Use Case ID
+UC-05
+Use Case Name
+View User List
+Primary Actor
+OJT
+Description
+Allows the OJT (admin) to view the complete list of users (Students and Mentors) in the system, with essential information and basic paging/sorting to support management operations.
+Preconditions
+- OJT is logged in with admin privileges.
+- User data (Mentor & Student accounts) already exist in the system.
+Postconditions
+- A paginated list of users is displayed.
+- The list can be further filtered or searched by other use cases (Filter User by Role, Search User).
+Trigger
+OJT selects “User Management, User List” from the menu.
+Normal Flow
+1. OJT clicks User List in the navigation menu.
+2. The system sends a request to retrieve users with default parameters:
+  - page = 1, pageSize = default (e.g. 20).
+  - no filter, no search keyword.
+3. The system queries the database for users and returns a collection of records containing at least:
+  - userId (internal ID).
+  - fullName (required).
+  - email (required, unique).
+  - role (required: STUDENT or MENTOR or OJT).
+  - departmentName (optional, for Mentor and Student).
+  - status (required: Active / Locked / Inactive).
+  - createdDate (required).
+4. The system calculates pagination metadata:
+  - totalRecords, totalPages, currentPage, pageSize.
+5. The system renders the User List grid with columns such as:
+  - Name, Email, Role, Department, Status, Actions (View / Edit / Delete / Lock).
+6. OJT can:
+  - Scroll/paginate to other pages (Next / Previous).
+  - Click a row to open View User Detail (UC-08).
+  - Open other actions like Edit, Remove, Lock depending on permissions (UC-09, UC-… later).
+Alternative Flow
+3a. No users found (fresh system)
+- System returns empty list and shows a message like “No users found. Please add new users.”
+Exception Flow
+3e. Database query error or timeout
+- System logs technical details.
+- System shows an error banner “Cannot load user list at the moment. Please try again later.”
+Non-Functional
+- User list must support pagination for performance.
+- Sorting by name, email, role, status should be supported (may be detailed in an extended UC if cần).
+
+
+
+UC-06 – FILTER USER BY ROLE
+Field
+Description
+Use Case ID
+UC-06
+Use Case Name
+Filter User by Role
+Primary Actor
+OJT
+Description
+Allows OJT to filter the user list by system role (Student or Mentor) to quickly manage specific user groups.
+Preconditions
+- OJT is logged in.
+- User List screen (UC-05) is already loaded.
+Postconditions
+- The user list is refreshed showing only users that match the selected role.
+Trigger
+OJT selects a role from the Role Filter dropdown.
+Normal Flow
+1. OJT opens the Role Filter dropdown on User List screen.
+2. The system displays available roles: Student, Mentor, All.
+3. OJT selects one role.
+4. The system sends a filter request with parameter:
+  - role (required).
+5. The system queries the database with condition role = selectedRole.
+6. The system returns filtered list with standard fields:
+  - userId (required), fullName (required), email (required), role (required), status (required).
+7. The system refreshes the list on UI.
+Alternative Flow
+5a. No user matches selected role, show empty list message.
+Exception Flow
+5e. Database query fails, show “Filter failed due to system error.”
+Non-Functional
+- Filtering response time < 2 seconds.
+
+
+UC-07 – SEARCH USER
+Field
+Description
+Use Case ID
+UC-07
+Use Case Name
+Search User
+Primary Actor
+OJT
+Description
+Allows OJT to search users using keyword matching on full name, email, or user code.
+Preconditions
+- OJT is logged in.
+- User List is available.
+Postconditions
+- Matching user records are displayed.
+Trigger
+OJT enters keyword into the Search box and presses Enter or clicks Search.
+Normal Flow
+1. OJT enters a keyword into search box.
+2. Keyword fields supported:
+  - fullName (optional).
+  - email (optional).
+  - userCode (optional).
+3. The system validates keyword length (min 1, max 100 chars).
+4. The system sends search request with keyword parameter.
+5. The database performs partial match search
+6. Matching records are returned and displayed.
+Alternative Flow
+6a. No matching record found, show “No result found”.
+Exception Flow
+5e. Search query execution fails.
+Non-Functional
+- Search must support fuzzy matching.
+- Response time < 3 seconds.
+
+
+UC-08 – VIEW USER DETAIL
+Field
+Description
+Use Case ID
+UC-08
+Use Case Name
+View User Detail
+Primary Actor
+OJT
+Description
+Allows OJT to view complete profile information of a selected user.
+Preconditions
+- OJT is logged in.
+- Selected user exists.
+Postconditions
+- User detailed information is displayed in read-only mode.
+Trigger
+OJT clicks “View Detail” on a user row.
+Normal Flow
+1. OJT selects a user from user list.
+2. The system sends request with parameter:
+  - userId (required).
+3. The system retrieves full user profile including:
+  - fullName (required).
+  - email (required).
+  - phoneNumber (optional).
+  - role (required).
+  - departmentId (optional).
+  - mentorId (optional).
+  - status (required).
+  - createdDate (required).
+4. The system displays user information.
+Alternative Flow
+None
+Exception Flow
+3e. User not found, show “User does not exist.”
+Non-Functional
+- Sensitive fields such as password must NOT be displayed.
+
+
+UC-09 – ADD USER
+Field
+Description
+Use Case ID
+UC-09
+Use Case Name
+Add User
+Primary Actor
+OJT
+Description
+Allows OJT to create a new system user (Student or Mentor).
+Preconditions
+- OJT is logged in with admin privileges.
+Postconditions
+- New user account is created and stored successfully.
+Trigger
+OJT clicks “Add User”.
+Normal Flow
+1. OJT opens Add User form.
+2. The system displays input fields:
+  - fullName (required).
+  - email (required, unique).
+  - phoneNumber (optional).
+  - role (required: Student or Mentor).
+  - defaultPassword (system generated or manual).
+  - departmentId (optional).
+  - mentorId (optional – for Student only).
+3. OJT fills the form and clicks Save.
+4. The system validates required fields and uniqueness of email.
+5. The system hashes password securely.
+6. The system saves user to database with status = Active.
+7. The system sends account information email to user.
+Alternative Flow
+4a. Email already exists, reject & display error.
+Exception Flow
+6e. Insert to database fails.
+Non-Functional
+- Email must be unique across system.
+
+
+UC-10 – EDIT USER
+Field
+Description
+Use Case ID
+UC-10
+Use Case Name
+Edit User
+Primary Actor
+OJT
+Description
+Allows OJT to update an existing user's profile.
+Preconditions
+- User already exists.
+Postconditions
+- User information is updated.
+Trigger
+OJT clicks Edit on a user.
+Normal Flow
+1. OJT opens Edit User form.
+2. Existing user fields are pre-filled.
+3. OJT updates allowed fields:
+  - fullName (required).
+  - phoneNumber (optional).
+  - role (required).
+  - departmentId (optional).
+  - mentorId (optional).
+4. The system validates data.
+5. The system updates the user record.
+Alternative Flow
+4a. Invalid input, validation error.
+Exception Flow
+5e. Database update fails.
+Non-Functional
+- Email field is read-only after creation.
+
+
+UC-11 – REMOVE USER
+Field
+Description
+Use Case ID
+UC-11
+Use Case Name
+Remove User
+Primary Actor
+OJT
+Description
+Allows OJT to delete a user account from the system (soft delete).
+Preconditions
+- User exists.
+- User is not currently assigned to unresolved tasks (optional rule).
+Postconditions
+- User status is set to Deleted/Inactive.
+Trigger
+OJT clicks Remove User.
+Normal Flow
+1. OJT selects a user and clicks Remove.
+2. The system asks for confirmation.
+3. OJT confirms deletion.
+4. The system sets isDeleted = true.
+Alternative Flow
+3a. OJT cancels deletion.
+Exception Flow
+4e. Delete operation fails.
+Non-Functional
+- Soft delete only, no physical data removal.
+
+
+UC-12 – LOCK / UNLOCK USER
+Field
+Description
+Use Case ID
+UC-12
+Use Case Name
+Lock / Unlock User
+Primary Actor
+OJT
+Description
+Allows OJT to lock or unlock a user account.
+Preconditions
+- User exists.
+Postconditions
+- User status updated to Locked or Active.
+Trigger
+OJT toggles Lock/Unlock on a user.
+Normal Flow
+1. OJT selects Lock or Unlock action.
+2. The system updates user status.
+3. The system logs the action.
+Alternative Flow
+None
+Exception Flow
+2e. Update status fails.
+Non-Functional
+- Locked users cannot log in.
+
+
+UC-13 – ASSIGN STUDENT TO MENTOR
+Field
+Description
+Use Case ID
+UC-13
+Use Case Name
+Assign Student to Mentor
+Primary Actor
+OJT
+Description
+Allows OJT to assign a student to a mentor for supervision.
+Preconditions
+- Student exists.
+- Mentor exists.
+Postconditions
+- Student is linked to selected mentor.
+Trigger
+OJT selects Assign Student to Mentor function.
+Normal Flow
+1. OJT selects a Student.
+2. OJT selects a Mentor from list.
+3. System checks mentor capacity (optional rule).
+4. System saves mentorId in student record.
+Alternative Flow
+3a. Mentor capacity exceeded, reject.
+Exception Flow
+4e. Database update fails.
+Non-Functional
+- 1 student can have only 1 mentor at a time.
+
+
+UC-14 – ASSIGN STUDENT TO DEPARTMENT
+Field
+Description
+Use Case ID
+UC-14
+Use Case Name
+Assign Student to Department
+Primary Actor
+OJT
+Description
+Allows OJT to assign a student to a department (lab).
+Preconditions
+- Student exists.
+- Department exists.
+Postconditions
+- Student is linked to selected department.
+Trigger
+OJT selects Assign Student to Department.
+Normal Flow
+1. OJT selects Student.
+2. OJT selects Department.
+3. System validates assignment.
+4. System updates departmentId for student.
+Alternative Flow
+None
+Exception Flow
+4e. Assignment fails.
+Non-Functional
+- Student can belong to only 1 department.
+
+
+UC-15 – CHANGE STUDENT MENTOR
+Field
+Description
+Use Case ID
+UC-15
+Use Case Name
+Change Student Mentor
+Primary Actor
+OJT
+Description
+Allows OJT to change the mentor supervising a student.
+Preconditions
+- Student currently assigned to a mentor.
+Postconditions
+- Student is reassigned to a new mentor.
+Trigger
+OJT selects Change Mentor.
+Normal Flow
+1. OJT selects new mentor.
+2. System updates student mentorId.
+3. System notifies old and new mentor.
+Alternative Flow
+None
+Exception Flow
+2e. Update fails.
+Non-Functional
+- Reassignment history should be logged.
+
+
+
+
+UC-16 – TRANSFER STUDENT DEPARTMENT
+Field
+Description
+Use Case ID
+UC-16
+Use Case Name
+Transfer Student Department
+Primary Actor
+OJT
+Description
+Allows OJT to transfer a student from the current department (lab) to another department. The system updates the student’s department, validates rules, and logs the transfer history.
+Preconditions
+- OJT is logged in with admin privileges.
+- Student exists and is Active.
+- Student is currently assigned to a department.
+- Target department exists and is Active.
+Postconditions
+- Student’s departmentId is updated to the new department.
+- Transfer history is recorded with oldDepartmentId, newDepartmentId, transferDate, and OJT userId.
+Trigger
+OJT clicks “Transfer Department” on a student profile.
+Normal Flow
+1. OJT opens Student Detail screen.
+2. OJT selects Transfer Department function.
+3. The system displays a dialog with fields:
+  - Current Department (read-only).
+  - New Department (required, dropdown).
+  - Transfer Reason (optional, text, max 255 chars).
+4. OJT selects a new department and confirms.
+5. System validates:
+  - New Department ≠ Current Department.
+  - New Department status = Active.
+6. The system updates student record with new departmentId.
+7. The system inserts a record into DepartmentTransferHistory table.
+8. The system shows success message.
+Alternative Flow
+5a. New Department equals Current Department, system rejects with message “Student is already in this department.”
+Exception Flow
+6e. Database update fails, system rolls back and displays “Transfer failed due to system error.”
+Non-Functional
+- Operation must complete within 3 seconds.
+
+
+UC-17 – DEPARTMENT LIST
+Field
+Description
+Use Case ID
+UC-17
+Use Case Name
+Department List
+Primary Actor
+OJT, Mentor, Student
+Description
+Allows user to view the list of all departments (labs) with summary information.
+Preconditions
+- User is logged in.
+- At least zero or more departments exist.
+Postconditions
+- List of departments is displayed.
+Trigger
+User opens Department List from navigation menu.
+Normal Flow
+1. User clicks Department List menu.
+2. The system retrieves department records with default paging.
+3. Each department record contains:
+  - departmentId (required).
+  - departmentCode (required, unique).
+  - departmentName (required).
+  - mentorInCharge (optional).
+  - status (Active/Inactive).
+4. The system displays the list in grid format.
+Alternative Flow
+3a. No departments found, display “No department available.”
+Exception Flow
+2e. Database query error.
+Non-Functional
+- Pagination required when records > 20.
+
+
+UC-18 – VIEW DEPARTMENT DETAIL
+Field
+Description
+Use Case ID
+UC-18
+Use Case Name
+View Department Detail
+Primary Actor
+OJT, Mentor, Student
+Description
+Allows user to view detailed information of a specific department including assigned mentor and students.
+Preconditions
+- Department exists.
+Postconditions
+- Detailed department profile is displayed.
+Trigger
+User clicks a department in the Department List.
+Normal Flow
+1. User selects a department row.
+2. The system retrieves detailed data including:
+  - departmentCode (required).
+  - departmentName (required).
+  - description (optional).
+  - workingTimeConfig (optional).
+  - mentorInCharge (optional).
+  - listOfStudents (optional, array).
+3. The system displays department detail page.
+Alternative Flow
+None
+Exception Flow
+2e. Department not found.
+Non-Functional
+- Data load time < 2 seconds.
+
+
+UC-19 – SEARCH DEPARTMENT
+Field
+Description
+Use Case ID
+UC-19
+Use Case Name
+Search Department
+Primary Actor
+OJT
+Description
+Allows OJT to search departments by code or name.
+Preconditions
+- Department List is available.
+Postconditions
+- Matching departments are displayed.
+Trigger
+OJT enters keyword in department search box.
+Normal Flow
+1. OJT enters keyword (min 1 char).
+2. System validates keyword length.
+3. System searches by departmentCode or departmentName (LIKE search).
+4. System displays matched results.
+Alternative Flow
+4a. No department matches keyword, show empty result.
+Exception Flow
+3e. Search query fails.
+Non-Functional
+- Search response time < 2 seconds.
+
+
+UC-20 – CREATE DEPARTMENT
+Field
+Description
+Use Case ID
+UC-20
+Use Case Name
+Create Department
+Primary Actor
+OJT
+Description
+Allows OJT to create a new department (lab) with configuration settings.
+Preconditions
+- OJT is logged in.
+- Department code is unique.
+Postconditions
+- New department is added to the system with Active status.
+Trigger
+OJT clicks “Create Department”.
+Normal Flow
+1. OJT opens Create Department form.
+2. The system displays input fields:
+  - departmentCode (required, unique).
+  - departmentName (required).
+  - description (optional).
+  - defaultWorkingTime (optional).
+3. OJT fills form and submits.
+4. System validates required fields and uniqueness.
+5. System saves department with status = Active.
+Alternative Flow
+4a. departmentCode already exists, reject with validation error.
+Exception Flow
+5e. Insert department fails.
+Non-Functional
+- Code uniqueness enforced at DB level.
+
+
+UC-21 – EDIT DEPARTMENT
+Field
+Description
+Use Case ID
+UC-21
+Use Case Name
+Edit Department
+Primary Actor
+OJT
+Description
+Allows OJT to update department information and configuration.
+Preconditions
+- Department exists and is Active.
+Postconditions
+- Department data is updated successfully.
+Trigger
+OJT clicks “Edit” on a department.
+Normal Flow
+1. OJT opens Edit Department form.
+2. System displays current department data.
+3. OJT edits allowed fields:
+  - departmentName (required).
+  - description (optional).
+  - defaultWorkingTime (optional).
+4. System validates inputs.
+5. System updates department record.
+Alternative Flow
+4a. Invalid input values.
+Exception Flow
+5e. Update fails.
+Non-Functional
+- Department code is read-only.
+
+
+UC-22 – DELETE DEPARTMENT
+Field
+Description
+Use Case ID
+UC-22
+Use Case Name
+Delete Department
+Primary Actor
+OJT
+Description
+Allows OJT to remove a department (soft delete).
+Preconditions
+- Department exists.
+- No active students assigned (or system policy allows forced delete).
+Postconditions
+- Department status is set to Inactive/Deleted.
+Trigger
+OJT clicks “Delete Department”.
+Normal Flow
+1. OJT selects a department to delete.
+2. System checks if department has active students.
+3. If no active students, system shows confirmation dialog.
+4. OJT confirms deletion.
+5. System sets department status = Deleted.
+Alternative Flow
+2a. Department has active students, system blocks deletion.
+Exception Flow
+5e. Delete operation fails.
+Non-Functional
+- Physical delete is not allowed.
+
+
+UC-23 – ASSIGN MENTOR TO DEPARTMENT
+Field
+Description
+Use Case ID
+UC-23
+Use Case Name
+Assign Mentor to Department
+Primary Actor
+OJT
+Description
+Allows OJT to assign or change the mentor in charge of a department.
+Preconditions
+- Mentor exists and Active.
+- Department exists and Active.
+Postconditions
+- Department’s mentorId is updated.
+Trigger
+OJT selects Assign Mentor action on a department.
+Normal Flow
+1. OJT selects a Department.
+2. OJT chooses a Mentor from dropdown list.
+3. The system validates mentor availability.
+4. The system updates department with mentorId.
+5. The system notifies Mentor of new assignment.
+Alternative Flow
+3a. Mentor already assigned, system allows override or shows warning.
+Exception Flow
+4e. Save operation fails.
+Non-Functional
+- Only one mentor in charge per department.
+
+
+UC-24 – MY ASSIGNED STUDENTS (MENTOR)
+Field
+Description
+Use Case ID
+UC-24
+Use Case Name
+My Assigned Students
+Primary Actor
+Mentor
+Description
+Allows Mentor to view the list of students that are assigned to them.
+Preconditions
+- Mentor is logged in.
+- At least zero or more students are assigned.
+Postconditions
+- Assigned student list is displayed.
+Trigger
+Mentor opens “My Students” menu.
+Normal Flow
+1. Mentor opens My Assigned Students page.
+2. System queries students where mentorId = current mentor.
+3. System returns list with fields:
+  - studentId, fullName, email, departmentName, attendanceStatus (today), taskProgressSummary.
+4. System displays student list.
+Alternative Flow
+3a. No students assigned, show “No students assigned.”
+Exception Flow
+2e. Data retrieval fails.
+Non-Functional
+- Mentor can only see their own students.
+
+
+UC-25 – VIEW ASSIGNED STUDENT DETAIL (MENTOR)
+Field
+Description
+Use Case ID
+UC-25
+Use Case Name
+View Assigned Student Detail
+Primary Actor
+Mentor
+Description
+Allows Mentor to view the full profile, attendance, tasks, and evaluation summary of an assigned student.
+Preconditions
+- Mentor is logged in.
+- Student is assigned to this mentor.
+Postconditions
+- Detailed student profile is displayed.
+Trigger
+Mentor clicks a student in My Assigned Students list.
+Normal Flow
+1. Mentor selects a student.
+2. System verifies mentor–student relationship.
+3. System loads detailed data:
+  - Profile info (name, email, department).
+  - Attendance summary.
+  - Task list and progress.
+  - Previous evaluations (if any).
+4. System displays detailed student dashboard.
+Alternative Flow
+2a. Student not assigned to this mentor, access denied.
+Exception Flow
+3e. Data loading error.
+Non-Functional
+- Data visibility strictly restricted by mentor–student relationship.
+
+
+UC-26 – FACE REGISTRATION (STUDENT)
+Field
+Description
+Use Case ID
+UC-26
+Use Case Name
+Face Registration
+Primary Actor
+Student
+Description
+Allows a student to register their face data for biometric attendance. The system captures face images, validates face quality, and stores biometric templates securely for Check-in/Check-out.
+Preconditions
+- Student is logged in for the first time or has not completed face registration.
+- Student account is Active.
+- Device has a working camera.
+Postconditions
+- Student’s face biometric template is created and stored successfully.
+- Student is marked as “Face Registered = true”.
+Trigger
+Student logs in for the first time or selects “Register Face” from profile.
+Normal Flow
+1. Student opens Face Registration screen.
+2. The system activates the camera and displays live preview.
+3. The system shows registration instructions (lighting, no mask, face inside frame).
+4. Student clicks [Capture] button.
+5. The system captures multiple frames (e.g., 3–5 images).
+6. The system validates each image:
+  - Face detected (required).
+  - Image clarity above threshold (required).
+  - Only one face in frame (required).
+7. The system extracts face features and creates a biometric template.
+8. The system encrypts and stores the biometric template linked to studentId.
+9. The system updates student record: isFaceRegistered = true.
+10. The system displays “Face registration successful”.
+Alternative Flow
+6a. Face not detected or multiple faces detected, system displays error and asks to recapture.
+6b. Image quality too low, system requests re-capture.
+Exception Flow
+8e. Biometric storage service fails, system shows “Face registration failed due to system error”.
+Non-Functional
+- Biometric data must be encrypted at rest.
+- Face data must not be retrievable as raw image after template generation.
+
+
+UC-27 – CHECK-IN
+Field
+Description
+Use Case ID
+UC-27
+Use Case Name
+Check-in
+Primary Actor
+Student
+Description
+Allows a student to perform daily check-in using face recognition according to configured check-in time rules.
+Preconditions
+- Student is logged in.
+- Student has completed Face Registration (UC-26).
+- Today is a working day based on department configuration.
+Postconditions
+- A new attendance record for today is created with check-in time and status.
+Trigger
+Student selects “Check-in” on the attendance screen.
+Normal Flow
+1. Student opens Attendance screen and selects Check-in.
+2. The system activates camera for face recognition.
+3. Student positions face in front of camera.
+4. The system captures image and compares with stored biometric template.
+5. If face match score ≥ configured threshold, authentication is successful.
+6. The system retrieves department check-in configuration:
+  - allowedStartTime (required).
+  - allowedEndTime (required).
+7. The system records:
+  - studentId (required).
+  - checkInTime (system timestamp).
+ &nbsp>- attendanceDate (today).
+  - status (OnTime / Late).
+8. The system displays success message with check-in time and status.
+Alternative Flow
+5a. Face not matched, system shows “Face verification failed”.
+6a. Check-in attempted outside allowed time, system marks status = Late or Reject based on policy.
+Exception Flow
+4e. Camera access or face recognition service error.
+Non-Functional
+- Face recognition response time < 2 seconds.
+- Attendance record must be immutable after check-out except by Mentor/Admin.
+
+
+UC-28 – CHECK-OUT
+Field
+Description
+Use Case ID
+UC-28
+Use Case Name
+Check-out
+Primary Actor
+Student
+Description
+Allows a student to perform daily check-out using face recognition.
+Preconditions
+- Student has successfully checked in on the same day.
+- Student is logged in.
+Postconditions
+- Check-out time is saved to the attendance record.
+- Working duration is calculated automatically.
+Trigger
+Student clicks “Check-out”.
+Normal Flow
+1. Student opens Attendance screen.
+2. Student selects Check-out.
+3. The system activates camera and verifies face identity.
+4. The system retrieves today’s attendance record for the student.
+5. The system saves:
+  - checkOutTime (system timestamp).
+  - workedDuration = checkOutTime – checkInTime.
+6. The system displays success message with total working time.
+Alternative Flow
+4a. No check-in record found, system shows “You have not checked in today”.
+Exception Flow
+5e. Database update error.
+Non-Functional
+- Check-out must be allowed only once per day by default.
+
+
+UC-29 – ATTENDANCE HISTORY (STUDENT)
+Field
+Description
+Use Case ID
+UC-29
+Use Case Name
+Attendance History
+Primary Actor
+Student
+Description
+Allows a student to view their full attendance history by date.
+Preconditions
+- Student is logged in.
+- Attendance data may or may not exist.
+Postconditions
+- Attendance history list is displayed.
+Trigger
+Student selects “Attendance History” from menu.
+Normal Flow
+1. Student opens Attendance History screen.
+2. The system queries attendance records by studentId.
+3. The system returns records with fields:
+  - date, checkInTime, checkOutTime, workedDuration, status, note (optional).
+4. The system displays the list with pagination.
+Alternative Flow
+3a. No attendance record, show “No attendance data available”.
+Exception Flow
+2e. Database query fails.
+Non-Functional
+- Default load: latest 30 records.
+
+
+UC-30 – VIEW ATTENDANCE DETAIL (STUDENT)
+Field
+Description
+Use Case ID
+UC-30
+Use Case Name
+View Attendance Detail
+Primary Actor
+Student
+Description
+Allows a student to view detailed information of a specific attendance record.
+Preconditions
+- Student is logged in.
+- Corresponding attendance record exists.
+Postconditions
+- Detailed attendance data is displayed.
+Trigger
+Student clicks a specific date in Attendance History.
+Normal Flow
+1. Student selects a date.
+2. The system retrieves attendance record by attendanceId.
+3. The system displays detailed fields:
+  - studentName, departmentName, checkInTime, checkOutTime, workedDuration, status, manualAdjustment (boolean), adjustedBy (optional), note (optional).
+Alternative Flow
+None
+Exception Flow
+2e. Attendance record not found.
+Non-Functional
+- Students cannot edit attendance data.
+
+
+UC-31 – STUDENT ATTENDANCE LIST (MENTOR)
+Field
+Description
+Use Case ID
+UC-31
+Use Case Name
+Student Attendance List
+Primary Actor
+Mentor
+Description
+Allows Mentor to view attendance records of all assigned students.
+Preconditions
+- Mentor is logged in.
+- At least zero students assigned.
+Postconditions
+- Attendance list of assigned students is displayed.
+Trigger
+Mentor opens Attendance Management menu.
+Normal Flow
+1. Mentor opens Student Attendance List screen.
+2. The system retrieves students assigned to the mentor.
+3. For each student, the system retrieves today’s latest attendance status.
+4. The system displays a grid with:
+  - studentName, department, checkInTime, checkOutTime, status, actions (View Detail / Manual Adjust).
+Alternative Flow
+2a. No students assigned, show “No assigned students”.
+Exception Flow
+3e. Attendance query fails.
+Non-Functional
+- Mentors can only see attendance of assigned students.
+
+
+UC-32 – VIEW STUDENT ATTENDANCE DETAIL (MENTOR)
+Field
+Description
+Use Case ID
+UC-32
+Use Case Name
+View Student Attendance Detail
+Primary Actor
+Mentor
+Description
+Allows Mentor to view full attendance history of a selected assigned student.
+Preconditions
+- Mentor is logged in.
+- Student is assigned to Mentor.
+Postconditions
+- Student’s detailed attendance history is displayed.
+Trigger
+Mentor clicks “View Attendance” on a student.
+Normal Flow
+1. Mentor selects a student from attendance list.
+2. The system validates mentor–student assignment.
+3. The system retrieves attendance history by studentId.
+4. The system displays records with date, in, out, duration, status, and notes.
+Alternative Flow
+None
+Exception Flow
+3e. Data loading fails.
+Non-Functional
+- Access strictly limited to assigned students only.
+
+
+UC-33 – MANUAL ATTENDANCE (MENTOR)
+Field
+Description
+Use Case ID
+UC-33
+Use Case Name
+Manual Attendance
+Primary Actor
+Mentor
+Description
+Allows Mentor to manually adjust a student’s attendance record in case of face recognition or system error.
+Preconditions
+- Mentor is logged in.
+- Attendance record exists.
+- Student is assigned to Mentor.
+Postconditions
+- Attendance record is updated with manual values
+Trigger
+Mentor clicks “Manual Adjust” on attendance detail.
+Normal Flow
+1. Mentor opens Attendance Detail screen.
+2. Mentor selects Manual Adjust.
+3. The system displays editable fields:
+  - checkInTime (optional).
+  - checkOutTime (optional).
+  - status (required).
+  - adjustmentNote (required, max 255 chars).
+4. Mentor enters adjusted values and submits.
+5. The system validates data consistency (checkOut > checkIn).
+6. The system saves updated values and sets isManual = true.
+7. The system logs mentorId and timestamp.
+Alternative Flow
+5a. Invalid time values, reject.
+Exception Flow
+6e. Database update error.
+Non-Functional
+- All manual changes must be auditable.
+
+
+UC-34 – CREATE LEAVE REQUEST (STUDENT)
+Field
+Description
+Use Case ID
+UC-34
+Use Case Name
+Create Leave Request
+Primary Actor
+Student
+Description
+Allows Student to submit a leave request for approval by Mentor within allowed leave policy.
+Preconditions
+- Student is logged in.
+- Student has not exceeded maximum leave quota.
+Postconditions
+- Leave request is created with status = Pending.
+Trigger
+Student clicks “Create Leave Request”.
+Normal Flow
+1. Student opens Leave Request screen.
+2. System displays fields:
+  - leaveType (required).
+  - startDate (required).
+  - endDate (required).
+  - reason (required, max 500 chars).
+3. Student fills all fields and submits.
+4. System validates:
+  - startDate ≤ endDate.
+  - Leave days within max limit.
+5. System saves leave request with status = Pending.
+6. System notifies Mentor.
+Alternative Flow
+4a. Leave exceeds maximum allowed days, reject.
+Exception Flow
+5e. Insert leave request fails.
+Non-Functional
+- Leave quota check must be real-time.
+
+
+UC-35 – LEAVE REQUEST LIST (STUDENT)
+Field
+Description
+Use Case ID
+UC-35
+Use Case Name
+Leave Request List
+Primary Actor
+Student
+Description
+Allows Student to view all their submitted leave requests and their statuses.
+Preconditions
+- Student is logged in.
+Postconditions
+- Leave request list is displayed.
+Trigger
+Student opens Leave Request List.
+Normal Flow
+1. Student opens Leave Request List screen.
+2. System retrieves leave requests by studentId.
+3. System displays list with:
+  - leaveType, startDate, endDate, totalDays, status (Pending/Approved/Rejected), mentorNote (optional).
+Alternative Flow
+2a. No leave request, show “No leave requests found”.
+Exception Flow
+2e. Data retrieval fails.
+Non-Functional
+- Default load = most recent 20 requests.
+
+
+UC-36 – VIEW LEAVE REQUEST DETAIL (STUDENT)
+Field
+Description
+Use Case ID
+UC-36
+Use Case Name
+View Leave Request Detail
+Primary Actor
+Student
+Description
+Allows Student to view full details of a specific leave request, including mentor’s approval or rejection note.
+Preconditions
+- Student is logged in.
+- Leave request belongs to the student.
+Postconditions
+- Leave request detail is displayed.
+Trigger
+Student clicks a leave request from Leave Request List (UC-35).
+Normal Flow
+1. Student selects a leave request.
+2. System validates ownership using studentId.
+3. System retrieves full leave detail by leaveRequestId with fields:
+  - leaveType (required).
+  - startDate (required).
+  - endDate (required).
+  - totalDays (calculated).
+  - reason (required).
+  - status (Pending/Approved/Rejected).
+  - mentorNote (optional).
+  - createdDate (required).
+4. System displays all fields in read-only mode.
+Alternative Flow
+None
+Exception Flow
+3e. Leave request not found.
+Non-Functional
+- Student cannot edit an approved or rejected request.
+
+
+UC-37 – APPROVE LEAVE REQUEST (MENTOR)
+Field
+Description
+Use Case ID
+UC-37
+Use Case Name
+Approve Leave Request
+Primary Actor
+Mentor
+Description
+Allows Mentor to approve a Student’s leave request.
+Preconditions
+- Mentor is logged in.
+- Leave request status = Pending.
+- Student is assigned to this Mentor.
+Postconditions
+- Leave request status is updated to Approved.
+- Student is notified.
+Trigger
+Mentor clicks “Approve” on a leave request.
+Normal Flow
+1. Mentor opens Pending Leave Requests list.
+2. Mentor selects a leave request.
+3. Mentor clicks Approve.
+4. System changes status to Approved.
+5. System records:
+  - approvedBy (mentorId).
+  - approvedDate (timestamp).
+6. System sends notification to Student.
+Alternative Flow
+None
+Exception Flow
+4e. Update leave status fails.
+Non-Functional
+- Approval must be logged for audit.
+
+
+UC-38 – REJECT LEAVE REQUEST (MENTOR)
+Field
+Description
+Use Case ID
+UC-38
+Use Case Name
+Reject Leave Request
+Primary Actor
+Mentor
+Description
+Allows Mentor to reject a Student’s leave request with a mandatory reason.
+Preconditions
+- Mentor is logged in.
+- Leave request status = Pending.
+Postconditions
+- Leave request status is updated to Rejected with reason.
+- Student is notified.
+Trigger
+Mentor clicks “Reject” on a leave request.
+Normal Flow
+1. Mentor selects a pending leave request.
+2. Mentor clicks Reject.
+3. System prompts for Rejection Reason (required, max 255 chars).
+4. Mentor enters reason and confirms.
+5. System updates status to Rejected and saves mentorNote.
+6. System notifies Student.
+Alternative Flow
+3a. Mentor cancels reject, no change.
+Exception Flow
+5e. Database update error.
+Non-Functional
+- Rejection reason is mandatory.
+
+UC-39 – TASK LIST (MENTOR)
+Field
+Description
+Use Case ID
+UC-39
+Use Case Name
+Task List (Mentor)
+Primary Actor
+Mentor
+Description
+Allows Mentor to view all tasks created by them.
+Preconditions
+- Mentor is logged in.
+Postconditions
+- Task list is displayed.
+Trigger
+Mentor opens Task Management menu.
+Normal Flow
+1. Mentor opens Task List screen.
+2. System queries tasks with createdBy = mentorId.
+3. System returns list with fields:
+  - taskId, taskTitle, assignedStudentsCount, startDate, dueDate, status.
+4. System displays task list with pagination.
+Alternative Flow
+3a. No task found, show empty task list.
+Exception Flow
+2e. Task query fails.
+Non-Functional
+- Default sort by newest created date.
+
+
+UC-40 – VIEW TASK DETAIL (MENTOR)
+Field
+Description
+Use Case ID
+UC-40
+Use Case Name
+View Task Detail (Mentor)
+Primary Actor
+Mentor
+Description
+Allows Mentor to view detailed information of a task and the progress of assigned students.
+Preconditions
+- Mentor is logged in.
+- Task belongs to this Mentor.
+Postconditions
+- Task detail is displayed.
+Trigger
+Mentor clicks a task in Task List.
+Normal Flow
+1. Mentor selects a task.
+2. System retrieves task with fields:
+  - taskTitle (required).
+  - description (optional).
+  - startDate (required).
+  - dueDate (required).
+  - priority (optional).
+  - status (Active/Closed).
+  - assignedStudents[] (list with studentId, fullName, progress, submissionStatus).
+3. System displays full task detail.
+Alternative Flow
+None
+Exception Flow
+2e. Task not found.
+Non-Functional
+- Mentor can only view tasks they created.
+
+
+UC-41 – CREATE TASK (MENTOR)
+Field
+Description
+Use Case ID
+UC-41
+Use Case Name
+Create Task
+Primary Actor
+Mentor
+Description
+Allows Mentor to create a new task for Students.
+Preconditions
+- Mentor is logged in.
+Postconditions
+- New task is created with status = Active.
+Trigger
+Mentor clicks “Create Task”.
+Normal Flow
+1. Mentor opens Create Task form.
+2. System displays fields:
+  - taskTitle (required, max 200 chars).
+  - description (optional).
+  - startDate (required).
+  - dueDate (required).
+  - priority (optional).
+3. Mentor fills form and submits.
+4. System validates:
+  - startDate ≤ dueDate.
+  - Required fields not empty.
+5. System saves task with createdBy = mentorId.
+Alternative Flow
+4a. Invalid date range, reject.
+Exception Flow
+5e. Insert task fails.
+Non-Functional
+- All tasks must belong to a mentor.
+
+
+UC-42 – ASSIGN TASK TO STUDENT (MENTOR)
+Field
+Description
+Use Case ID
+UC-42
+Use Case Name
+Assign Task
+Primary Actor
+Mentor
+Description
+Allows Mentor to assign a created task to one or multiple students.
+Preconditions
+- Task exists.
+- Students are assigned to this Mentor.
+Postconditions
+- Students are linked to the task and notified.
+Trigger
+Mentor clicks “Assign Task” on a task.
+Normal Flow
+1. Mentor selects a task.
+2. System displays list of assigned students with checkboxes.
+3. Mentor selects one or more students.
+4. Mentor confirms assignment.
+5. System checks duplicate assignment.
+6. System inserts records into TaskAssignment table.
+7. System sends notifications to students.
+Alternative Flow
+5a. Student already assigned, skip or warn.
+Exception Flow
+6e. Assignment save fails.
+Non-Functional
+- One task can be assigned to multiple students.
+
+
+UC-43 – TASK LIST (STUDENT)
+Field
+Description
+Use Case ID
+UC-43
+Use Case Name
+Task List (Student)
+Primary Actor
+Student
+Description
+Allows Student to view all tasks assigned to them.
+Preconditions
+- Student is logged in.
+Postconditions
+- Assigned task list is displayed.
+Trigger
+Student opens Task menu.
+Normal Flow
+1. Student opens Task List screen.
+2. System retrieves tasks where studentId is assigned.
+3. System displays tasks with fields:
+  - taskTitle, startDate, dueDate, status, progress.
+Alternative Flow
+3a. No assigned task, show “No task assigned”.
+Exception Flow
+2e. Task query fails.
+Non-Functional
+- Tasks sorted by due date ascending.
+
+
+UC-44 – VIEW TASK DETAIL (STUDENT)
+Field
+Description
+Use Case ID
+UC-44
+Use Case Name
+View Task Detail (Student)
+Primary Actor
+Student
+Description
+Allows Student to view full details of an assigned task.
+Preconditions
+- Student is logged in.
+- Task assigned to Student.
+Postconditions
+- Task detail is displayed.
+Trigger
+Student clicks a task from Task List.
+Normal Flow
+1. Student selects a task.
+2. System validates task-student relationship.
+3. System displays detail:
+  - taskTitle, description, startDate, dueDate, priority, mentorName, progressStatus.
+Alternative Flow
+None
+Exception Flow
+2e. Task not found.
+Non-Functional
+- Student cannot edit task main info.
+
+
+UC-45 – UPDATE TASK PROGRESS (STUDENT)
+Field
+Description
+Use Case ID
+UC-45
+Use Case Name
+Update Task Progress
+Primary Actor
+Student
+Description
+Allows Student to update progress or submit result for an assigned task.
+Preconditions
+- Student is logged in.
+- Task assigned to Student is Active.
+Postconditions
+- Task progress is updated and visible to Mentor.
+Trigger
+Student clicks “Update Progress” on Task Detail.
+Normal Flow
+1. Student opens Task Detail screen.
+2. Student clicks Update Progress.
+3. System displays fields:
+  - progressStatus (required: Not Started/In Progress/Completed).
+  - progressNote (optional, max 500 chars).
+  - submissionFile (optional).
+4. Student enters data and submits.
+5. System validates required fields.
+6. System saves progress and submission.
+7. System notifies Mentor about the update.
+Alternative Flow
+5a. Invalid status, reject.
+Exception Flow
+6e. Save progress fails.
+Non-Functional
+- File upload size limit must be enforced.
+
+
+UC-46 – CONFIGURE CHECK-IN TIME (OJT)
+Field
+Description
+Use Case ID
+UC-46
+Use Case Name
+Configure Check-in Time
+Primary Actor
+OJT
+Description
+Allows OJT to configure the allowed daily check-in time window for the system or per department.
+Preconditions
+- OJT is logged in with admin privileges.
+Postconditions
+- Check-in time configuration is saved and applied to attendance validation.
+Trigger
+OJT opens System Configuration, Check-in Time.
+Normal Flow
+1. OJT opens Check-in Time Configuration screen.
+2. System displays fields:
+  - applyScope (required: Global / By Department).
+  - departmentId (required if applyScope = By Department).
+  - allowedStartTime (required, HH:mm).
+  - allowedEndTime (required, HH:mm).
+3. OJT enters or updates values.
+4. System validates:
+  - allowedStartTime < allowedEndTime.
+  - Time format valid.
+5. System saves configuration to Config table.
+6. System displays success message.
+Alternative Flow
+4a. End time ≤ Start time, validation error.
+Exception Flow
+5e. Database save fails.
+Non-Functional
+- Config change must take effect immediately for new check-ins.
+
+
+UC-47 – CONFIGURE CHECK-OUT TIME (OJT)
+Field
+Description
+Use Case ID
+UC-47
+Use Case Name
+Configure Check-out Time
+Primary Actor
+OJT
+Description
+Allows OJT to configure the allowed daily check-out time window.
+Preconditions
+- OJT is logged in.
+Postconditions
+- Check-out time rules are updated.
+Trigger
+OJT opens System Configuration, Check-out Time.
+Normal Flow
+1. OJT opens Check-out Time configuration screen.
+2. System displays fields:
+  - applyScope (required: Global / By Department).
+  - departmentId (required if By Department).
+  - allowedStartTime (required).
+  - allowedEndTime (required).
+3. OJT enters values and submits.
+4. System validates time range.
+5. System saves setup to database.
+Alternative Flow
+4a. Invalid time range.
+Exception Flow
+5e. Save operation fails.
+Non-Functional
+- Check-out rules must not affect already closed attendance records.
+
+
+UC-48 – CONFIGURE WORKING TIME BY DEPARTMENT (OJT)
+Field
+Description
+Use Case ID
+UC-48
+Use Case Name
+Configure Working Time by Department
+Primary Actor
+OJT
+Description
+Allows OJT to configure official working hours for each department which will be used to calculate attendance duration and lateness.
+Preconditions
+- OJT is logged in.
+- Department exists.
+Postconditions
+- Working time configuration is stored for the selected department.
+Trigger
+OJT selects a Department and opens Working Time Configuration.
+Normal Flow
+1. OJT selects a department.
+2. System displays fields:
+  - morningStartTime (required).
+  - morningEndTime (required).
+  - afternoonStartTime (optional).
+  - afternoonEndTime (optional).
+  - workingDays (required, e.g., Mon–Fri).
+3. OJT enters data and saves.
+4. System validates:
+  - morningStart < morningEnd.
+  - afternoonStart < afternoonEnd (if provided).
+  - No overlap between sessions.
+5. System saves working time configuration.
+Alternative Flow
+4a. Overlapping time slots, reject.
+Exception Flow
+5e. Save configuration fails.
+Non-Functional
+- Configuration must be applied per department immediately.
+
+
+UC-49 – CONFIGURE MAXIMUM LEAVE DAYS (OJT)
+Field
+Description
+Use Case ID
+UC-49
+Use Case Name
+Configure Maximum Leave Days
+Primary Actor
+OJT
+Description
+Allows OJT to configure the maximum number of leave days a student is allowed within a defined period (e.g., per month or per internship term).
+Preconditions
+- OJT is logged in.
+Postconditions
+- Leave quota rules are updated system-wide or by department.
+Trigger
+OJT opens Leave Policy Configuration.
+Normal Flow
+1. OJT opens Leave Policy screen.
+2. System displays fields:
+  - applyScope (required: Global / By Department).
+  - departmentId (required if scoped).
+  - maxLeaveDays (required, integer ≥ 0).
+  - periodType (required: Monthly / Term).
+3. OJT enters values and saves.
+4. System validates numeric values and scope.
+5. System updates leave policy configuration.
+Alternative Flow
+4a. maxLeaveDays < 0, validation error.
+Exception Flow
+5e. Config update fails.
+Non-Functional
+- Changes apply only to future leave requests.
+
+
+UC-50 – CONFIGURE EVALUATION CRITERIA (OJT)
+Field
+Description
+Use Case ID
+UC-50
+Use Case Name
+Configure Evaluation Criteria
+Primary Actor
+OJT
+Description
+Allows OJT to configure the evaluation criteria and scoring weights used by Mentors to assess Students.
+Preconditions
+- OJT is logged in.
+Postconditions
+- New or updated evaluation criteria are saved and activated.
+Trigger
+OJT opens Evaluation Criteria Configuration.
+Normal Flow
+1. OJT opens Evaluation Criteria screen.
+2. System displays criteria list with fields:
+  - criterionName (required).
+  - description (optional).
+  - weight (%) (required, total ≤ 100%).
+  - maxScore (required).
+3. OJT adds, edits, or removes criteria.
+4. System validates:
+  - Total weight = 100%.
+  - maxScore > 0.
+5. System saves criteria configuration.
+Alternative Flow
+4a. Total weight ≠ 100%, reject.
+Exception Flow
+5e. Save configuration fails.
+Non-Functional
+- Configuration changes must version old criteria for audit.
+
+
+UC-51 – STUDENT EVALUATION (MENTOR)
+Field
+Description
+Use Case ID
+UC-51
+Use Case Name
+Student Evaluation
+Primary Actor
+Mentor
+Description
+Allows Mentor to evaluate a Student based on the configured evaluation criteria.
+Preconditions
+- Mentor is logged in.
+- Student is assigned to Mentor.
+- Evaluation criteria have been configured by OJT.
+Postconditions
+- Student evaluation record is created or updated with scores.
+Trigger
+Mentor selects “Evaluate Student”.
+Normal Flow
+1. Mentor selects a Student from assigned list.
+2. System loads active evaluation criteria.
+3. System displays evaluation form with fields per criterion:
+  - score (required, 0 ≤ score ≤ maxScore).
+  - comment (optional).
+4. Mentor enters scores and submits.
+5. System validates score ranges and total calculation.
+6. System calculates weighted total score.
+7. System saves evaluation with status = Draft or Completed.
+Alternative Flow
+5a. Invalid score value, reject.
+Exception Flow
+7e. Save evaluation fails.
+Non-Functional
+- Mentors can only evaluate their assigned students.
+
+
+UC-52 – SUBMIT EVALUATION REPORT (MENTOR)
+Field
+Description
+Use Case ID
+UC-52
+Use Case Name
+Submit Evaluation Report
+Primary Actor
+Mentor
+Description
+Allows Mentor to submit a completed student evaluation report to OJT for review.
+Preconditions
+- Evaluation exists and is complete.
+- Mentor is logged in.
+Postconditions
+- Evaluation status is updated to Submitted.
+- OJT is notified.
+Trigger
+Mentor clicks “Submit Evaluation”.
+Normal Flow
+1. Mentor opens a completed evaluation.
+2. Mentor clicks Submit.
+3. System validates all criteria have scores.
+4. System updates evaluation status to Submitted.
+5. System sends notification to OJT.
+Alternative Flow
+3a. Missing criteria score, block submission.
+Exception Flow
+4e. Status update fails.
+Non-Functional
+- Submitted evaluations must be locked from editing.
+
+
+UC-53 – VIEW EVALUATION RESULT (STUDENT)
+Field
+Description
+Use Case ID
+UC-53
+Use Case Name
+View Evaluation Result
+Primary Actor
+Student
+Description
+Allows Student to view the evaluation results submitted by Mentor.
+Preconditions
+- Student is logged in.
+- Evaluation status = Submitted or Approved.
+Postconditions
+- Evaluation result is displayed in read-only mode.
+Trigger
+Student opens Evaluation Result menu.
+Normal Flow
+1. Student opens Evaluation Result screen.
+2. System retrieves evaluation record by studentId.
+3. System displays:
+  - criteria list with scores.
+  - weighted total score.
+  - mentor comments.
+  - submission date.
+Alternative Flow
+2a. No evaluation available, show “No evaluation published yet”.
+Exception Flow
+2e. Data retrieval error.
+Non-Functional
+- Student cannot modify evaluation.
+
+
+UC-54 – EVALUATION REPORT LIST (OJT)
+Field
+Description
+Use Case ID
+UC-54
+Use Case Name
+Evaluation Report List
+Primary Actor
+OJT
+Description
+Allows OJT to view the list of all submitted student evaluation reports.
+Preconditions
+- OJT is logged in.
+Postconditions
+- Evaluation report list is displayed.
+Trigger
+OJT opens Evaluation Report Management.
+Normal Flow
+1. OJT opens Evaluation Report List.
+2. System retrieves evaluations with status = Submitted or Completed.
+3. System displays list with fields:
+  - studentName, mentorName, department, totalScore, status, submissionDate.
+Alternative Flow
+2a. No reports available, show empty list.
+Exception Flow
+2e. Query fails.
+Non-Functional
+- Support filtering by department, mentor.
+
+
+UC-55 – VIEW EVALUATION REPORT DETAIL (OJT)
+Field
+Description
+Use Case ID
+UC-55
+Use Case Name
+View Evaluation Report Detail
+Primary Actor
+OJT
+Description
+Allows OJT to view full details of a specific student evaluation report.
+Preconditions
+- OJT is logged in.
+- Evaluation report exists.
+Postconditions
+- Full evaluation detail is displayed.
+Trigger
+OJT clicks a report from Evaluation Report List.
+Normal Flow
+1. OJT selects an evaluation report.
+2. System retrieves full data including:
+  - student profile.
+  - mentor profile.
+  - criteria scores and comments.
+  - total weighted score.
+  - submittedDate.
+3. System displays detail in read-only format.
+Alternative Flow
+None
+Exception Flow
+2e. Report not found.
+Non-Functional
+- Only OJT can view all evaluation details.
+
+UC-56 – NOTIFICATION LIST (STUDENT)
+Field
+Description
+Use Case ID
+UC-56
+Use Case Name
+Notification List
+Primary Actor
+Student
+Description
+Allows Student to view the list of all notifications sent by Mentor or OJT, including system notifications related to task updates, leave approvals, and evaluations.
+Preconditions
+- Student is logged in.
+- Notification records may or may not exist.
+Postconditions
+- Notification list is displayed to the Student.
+Trigger
+Student clicks “Notifications” from the main menu or notification icon.
+Normal Flow
+1. Student opens Notification List screen.
+2. The system retrieves notifications by studentId with default paging and sorting by createdDate DESC.
+3. Each notification record includes:
+  - notificationId (required).
+  - title (required).
+  - message (required).
+  - senderType (Mentor/OJT/System).
+  - senderId (optional).
+  - createdDate (required).
+  - isRead (required, boolean).
+4. The system displays the notification list with visual distinction for unread items.
+Alternative Flow
+3a. No notification exists, show message “No notifications available”.
+Exception Flow
+2e. Failed to retrieve notifications due to database error.
+Non-Functional
+- Default load: latest 20 notifications.
+- Unread notifications must be highlighted.
+
+UC-57 – VIEW NOTIFICATION DETAIL (STUDENT)
+Field
+Description
+Use Case ID
+UC-57
+Use Case Name
+View Notification Detail
+Primary Actor
+Student
+Description
+Allows Student to view the full content of a selected notification.
+Preconditions
+- Student is logged in.
+- The selected notification belongs to the Student.
+Postconditions
+- Full notification content is displayed in detail view.
+Trigger
+Student clicks a notification from the Notification List.
+Normal Flow
+1. Student selects a notification item.
+2. The system validates ownership using studentId.
+3. The system retrieves full notification data by notificationId including:
+  - title, message, senderName, createdDate, relatedEntityType (Task/Leave/Evaluation – optional), relatedEntityId (optional).
+4. The system displays full notification content in read-only mode.
+Alternative Flow
+None
+Exception Flow
+3e. Notification not found, show “Notification no longer available”.
+Non-Functional
+- Notification content must not be editable by Student.
+
+UC-58 – MARK NOTIFICATION AS READ (STUDENT)
+Field
+Description
+Use Case ID
+UC-58
+Use Case Name
+Mark Notification as Read
+Primary Actor
+Student
+Description
+Allows Student to mark a single notification as read after viewing or manually selecting it.
+Preconditions
+- Student is logged in.
+- Notification exists and isRead = false.
+Postconditions
+- Notification isRead status is updated to true.
+Trigger
+Student clicks “Mark as Read” or opens a notification detail.
+Normal Flow
+1. Student selects an unread notification.
+2. Student clicks Mark as Read or opens detail view.
+3. System updates isRead = true for the notification record.
+4. System refreshes notification list and removes unread highlight.
+Alternative Flow
+3a. Notification already marked as read, no change applied.
+Exception Flow
+3e. Update operation fails due to database error.
+Non-Functional
+- Read status update must be real-time without page refresh (AJAX/WebSocket preferred).
+
+UC-59 – MARK ALL NOTIFICATIONS AS READ (STUDENT)
+Field
+Description
+Use Case ID
+UC-59
+Use Case Name
+Mark All Notifications as Read
+Primary Actor
+Student
+Description
+Allows Student to mark all unread notifications as read in a single action.
+Preconditions
+- Student is logged in.
+- At least one unread notification exists.
+Postconditions
+- All notifications of the Student are updated with isRead = true.
+Trigger
+Student clicks “Mark All as Read” button.
+Normal Flow
+1. Student clicks Mark All as Read on Notification List screen.
+2. The system retrieves all notifications where studentId = currentStudentId AND isRead = false.
+3. The system performs a bulk update setting isRead = true for all matched records.
+4. The system refreshes the notification list and removes all unread highlights.
+5. The system shows a small confirmation message “All notifications marked as read”.
+Alternative Flow
+2a. No unread notifications found, system shows “No unread notifications”.
+Exception Flow
+3e. Bulk update fails due to system error.
+Non-Functional
+- Bulk update must be executed as a single transaction.
+
+UC-60 – SEND NOTIFICATION (MENTOR, OJT)
+Field
+Description
+Use Case ID
+UC-60
+Use Case Name
+Send Notification
+Primary Actor
+Mentor, OJT
+Description
+Allows Mentor or OJT to send notifications to one or multiple Students for announcements, task updates, leave responses, or system notices.
+Preconditions
+- User is logged in as Mentor or OJT.
+- At least one Student exists in the system.
+Postconditions
+- Notification records are created for all selected Students.
+- Students receive notifications in real-time or near real-time.
+Trigger
+Mentor or OJT clicks “Send Notification”.
+Normal Flow
+1. Mentor/OJT opens Send Notification screen.
+2. The system displays input fields:
+  - recipientType (required: Individual / Group / Department / All).
+  - recipientIds (required if Individual/Group).
+  - departmentId (required if recipientType = Department).
+  - title (required, max 200 chars).
+  - message (required, max 1000 chars).
+  - relatedEntityType (optional: Task / Leave / Evaluation).
+  - relatedEntityId (optional).
+3. Sender fills in all required fields and clicks Send.
+4. The system validates:
+  - At least one recipient selected.
+  - Title and Message are not empty.
+5. The system creates notification records for each target student with fields:
+  - notificationId.
+  - studentId.
+  - title.
+  - message.
+  - senderType (Mentor/OJT).
+  - senderId.
+  - createdDate.
+  - isRead = false.
+6. The system pushes notification to students via real-time channel (WebSocket/Push) or polling mechanism.
+7. The system displays success message to sender.
+Alternative Flow
+4a. No recipient selected, system blocks submission and displays validation error.
+Exception Flow
+5e. One or more notification insert operations fail, system logs error and displays partial/failed send warning.
+Non-Functional
+- Max recipients per send must be controlled to avoid performance issues.
+- Notification delivery latency should be < 5 seconds under normal conditions.
+
+

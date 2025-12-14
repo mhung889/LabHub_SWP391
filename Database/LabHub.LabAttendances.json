@@ -1,0 +1,72 @@
+[{
+  "_id": {
+    "$oid": "675ddd444444444444444401"
+  },
+  "lab": {
+    "$oid": "675bbb222222222222222201"
+  },
+  "student": {
+    "$oid": "675ccc333333333333333301"
+  },
+  "date": "2024-12-01T00:00:00Z",
+  "checkInTime": "2024-12-01T08:05:00Z",
+  "checkOutTime": "2024-12-01T16:55:00Z",
+  "workSummary": "Làm API Login",
+  "workDetails": "Tìm hiểu JWT + Refresh token",
+  "totalHours": 8,
+  "status": "completed"
+},
+{
+  "_id": {
+    "$oid": "675ddd444444444444444402"
+  },
+  "lab": {
+    "$oid": "675bbb222222222222222201"
+  },
+  "student": {
+    "$oid": "675ccc333333333333333301"
+  },
+  "date": "2024-12-02T00:00:00Z",
+  "checkInTime": "2024-12-02T08:10:00Z",
+  "checkOutTime": "2024-12-02T17:00:00Z",
+  "workSummary": "Xây dựng API Student",
+  "workDetails": "CRUD + Validation",
+  "totalHours": 8,
+  "status": "completed"
+},
+{
+  "_id": {
+    "$oid": "675ddd444444444444444403"
+  },
+  "lab": {
+    "$oid": "675bbb222222222222222202"
+  },
+  "student": {
+    "$oid": "675ccc333333333333333302"
+  },
+  "date": "2024-12-01T00:00:00Z",
+  "checkInTime": "2024-12-01T09:00:00Z",
+  "checkOutTime": "2024-12-01T16:00:00Z",
+  "workSummary": "Thiết kế UI Android",
+  "workDetails": "Làm trang Login bằng XML",
+  "totalHours": 7,
+  "status": "completed"
+},
+{
+  "_id": {
+    "$oid": "675ddd444444444444444404"
+  },
+  "lab": {
+    "$oid": "675bbb222222222222222202"
+  },
+  "student": {
+    "$oid": "675ccc333333333333333302"
+  },
+  "date": "2024-12-02T00:00:00Z",
+  "checkInTime": "2024-12-02T09:05:00Z",
+  "checkOutTime": "2024-12-02T16:20:00Z",
+  "workSummary": "Học Fragment",
+  "workDetails": "Navigation Component + BottomNav",
+  "totalHours": 7,
+  "status": "completed"
+}]

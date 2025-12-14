@@ -1,0 +1,32 @@
+[{
+  "_id": {
+    "$oid": "6934f59b0ec96a09df0cfca3"
+  },
+  "name": "NodeJS",
+  "code": "NODE",
+  "description": "Chuyên sâu lập trình backend Node.js"
+},
+{
+  "_id": {
+    "$oid": "6934f59b0ec96a09df0cfca4"
+  },
+  "name": ".NET",
+  "code": "DOTNET",
+  "description": "Lập trình backend với .NET Framework và .NET Core"
+},
+{
+  "_id": {
+    "$oid": "6934f59b0ec96a09df0cfca5"
+  },
+  "name": "Java",
+  "code": "JAVA",
+  "description": "Lập trình backend với Java Spring Boot"
+},
+{
+  "_id": {
+    "$oid": "6934f59b0ec96a09df0cfca6"
+  },
+  "name": "AI",
+  "code": "AI",
+  "description": "Trí tuệ nhân tạo, Machine Learning và Deep Learning"
+}]
