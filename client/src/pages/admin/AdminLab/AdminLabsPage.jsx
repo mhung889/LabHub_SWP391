@@ -194,7 +194,7 @@ export default function AdminLabsPage() {
         err.response?.data?.message ||
         'Không thể xóa lab do đang có student hoặc mentor!';
 
-      toast.error(message);
+     //toast.error(message);
 
       setError(message);
 

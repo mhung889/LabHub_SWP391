@@ -1,9 +1,9 @@
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Users, Zap, BarChart3, GraduationCap, BookOpen, LogOut } from 'lucide-react';
-
 import { Button } from '@/components/ui/button';
 import { clearStorage } from '@/utils/storage';
 import { toast } from 'sonner';
+import LogoutButton from './../../components/LogoutButton';
 
 export default function AdminLayout() {
   const navigate = useNavigate();
@@ -65,17 +65,9 @@ export default function AdminLayout() {
         </nav>
 
         <div className='px-4 py-4 border-t border-border flex justify-center'>
-          {/* <Button
-            variant='outline'
-            size='sm'
-            className='w-28 text-black !rounded-[10px] border py-3'
-            onClick={handleLogout}
-          >
-            <LogOut className='w-4 h-4 mr-2' />
-            Đăng xuất
-          </Button> */}
 
           <LogoutButton/>
+
         </div>
       </aside>
 
