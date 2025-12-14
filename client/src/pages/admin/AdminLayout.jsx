@@ -1,29 +1,39 @@
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { Users, Zap, BarChart3, GraduationCap } from 'lucide-react';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Users, Zap, BarChart3, GraduationCap, BookOpen, LogOut } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import LogoutButton from '@/components/LogoutButton';
+import { clearStorage } from '@/utils/storage';
+import { toast } from 'sonner';
 
 export default function AdminLayout() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const tabs = [
     { to: '/admin/overview', label: 'Tổng Quan', icon: BarChart3 },
     { to: '/admin/labs', label: 'Quản Lý Lab', icon: Zap },
     { to: '/admin/mentors', label: 'Quản Lý Mentor', icon: Users },
     { to: '/admin/students', label: 'Quản Lý Sinh Viên', icon: GraduationCap },
+    { to: '/admin/majors', label: 'Quản Lý Chuyên Ngành', icon: BookOpen },
   ];
-
-  const location = useLocation();
 
   const titleMap = {
     '/admin/overview': 'Overview',
     '/admin/labs': 'Lab Management',
     '/admin/mentors': 'Mentor Management',
     '/admin/students': 'Student Management',
+    '/admin/majors': 'Major Management',
   };
 
   // Tìm tab hiện tại để hiển thị title đúng
   const currentTab = tabs.find((t) => location.pathname.startsWith(t.to));
   const headerTitle = currentTab ? titleMap[currentTab.to] : 'Trang quản trị';
+
+  const handleLogout = () => {
+    clearStorage();
+    toast.success('Đã đăng xuất');
+    navigate('/login');
+  };
 
   return (
     <div className='min-h-screen flex bg-background'>
@@ -59,7 +69,9 @@ export default function AdminLayout() {
             variant='outline'
             size='sm'
             className='w-28 text-black !rounded-[10px] border py-3'
+            onClick={handleLogout}
           >
+            <LogOut className='w-4 h-4 mr-2' />
             Đăng xuất
           </Button> */}
 

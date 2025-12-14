@@ -32,18 +32,18 @@ const notificationSchema = new Schema(
       enum: ['active', 'archived',],
       default: 'active',
     },
-    // readBy: [
-    //   {
-    //     student: {
-    //       type: Schema.Types.ObjectId,
-    //       ref: 'Student',
-    //     },
-    //     readAt: {
-    //       type: Date,
-    //       default: Date.now,
-    //     },
-    //   },
-    // ],
+    readBy: [
+      {
+        student: {
+          type: Schema.Types.ObjectId,
+          ref: 'Student',
+        },
+        readAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
   },
   { timestamps: true, versionKey: false }
 );

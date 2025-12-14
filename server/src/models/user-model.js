@@ -63,6 +63,15 @@ const userSchema = new Schema(
         'https://res.cloudinary.com/dyz2xtks9/image/upload/v1741075645/Human%20Management/images/user_default_1741075643141.jpg',
     },
     emergencyContact: emergencyContactSchema,
+    // For password reset flow
+    resetPasswordToken: {
+      type: String,
+      default: null,
+    },
+    resetPasswordExpires: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true, versionKey: false }
 );

@@ -1,9 +1,33 @@
 // src/components/student/sidebar/Sidebar.jsx
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import LogoutButton from "../../LogoutButton";
 
 const Sidebar = ({ user, items }) => {
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      try {
+        if (!user) return;
+        const { default: api } = await import('../../../api/notificationApi');
+        const res = await api.getStudentNotifications();
+        if (mounted) setUnreadCount(res.data.unreadCount || 0);
+      } catch (err) {
+        // ignore
+      }
+    };
+    load();
+    const onRead = (e) => {
+      try {
+        const c = Number(e?.detail?.unreadCount);
+        if (!Number.isNaN(c)) setUnreadCount(c);
+      } catch (_) {}
+    };
+    window.addEventListener('notificationRead', onRead);
+    return () => { mounted = false };
+  }, [user]);
   // Menu mặc định
   const defaultItems = [
     {
@@ -21,6 +45,11 @@ const Sidebar = ({ user, items }) => {
       to: "/student/leave",
       icon: "event_busy",
       label: "Đơn xin nghỉ",
+    },
+    {
+      to: "/student/notifications",
+      icon: "notifications",
+      label: "Thông báo",
     },
     {
       to: "/student/profile",
@@ -96,6 +125,9 @@ const Sidebar = ({ user, items }) => {
                     {item.icon}
                   </span>
                   {item.label}
+                  {item.to === '/student/notifications' && unreadCount > 0 && (
+                    <span className="badge bg-danger ms-2">{unreadCount}</span>
+                  )}
                 </>
               )}
             </NavLink>
