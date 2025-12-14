@@ -85,14 +85,14 @@ export default function CreateLeaveRequestModal({
         <Modal.Title className='fw-semibold'>Tạo đơn xin nghỉ</Modal.Title>
       </Modal.Header>
 
-      {/* ✅ noValidate để tắt tooltip required của HTML5 */}
+   
       <Form onSubmit={handleSubmit} noValidate>
         <Modal.Body className='pt-3'>
-          {formErr && (
+          {/* {formErr && (
             <Alert variant='danger' className='mb-3'>
               {formErr}
             </Alert>
-          )}
+          )} */}
 
           <Form.Group className='mb-3'>
             <Form.Label className='fw-medium'>Loại đơn</Form.Label>

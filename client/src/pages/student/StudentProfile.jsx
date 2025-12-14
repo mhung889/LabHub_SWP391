@@ -751,7 +751,7 @@ const StudentProfile = () => {
                               </p>
                             </div>
                           </Col>
-                          <Col md={6}>
+                          {/* <Col md={6}>
                             <div className="info-item">
                               <label className="info-label">Trạng thái</label>
                               <p className="info-value">
@@ -776,7 +776,7 @@ const StudentProfile = () => {
                                 </span>
                               </p>
                             </div>
-                          </Col>
+                          </Col> */}
                         </Row>
                       </Card.Body>
                     </Card>
