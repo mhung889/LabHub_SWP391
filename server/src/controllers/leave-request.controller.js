@@ -246,6 +246,14 @@ exports.getAllLeaveRequests = async (req, res) => {
     }
 
     const lab = await LabModel.findOne({ mentor: mentorId }).select('_id');
+
+    if (!lab) {
+      return res.status(200).json({
+        leaveRequests: [],
+        message: 'Mentor quản lý lớp lab nào',
+      });
+    }
+
     const labIds = lab._id;
 
     const leaveRequests = await LeaveRequestModel.find({

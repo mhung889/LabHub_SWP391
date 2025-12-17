@@ -3,6 +3,7 @@ import { BarChart3, ClipboardList, Users, LogOut, Bell, FileText } from 'lucide-
 import { Button } from '@/components/ui/button';
 import { getAccessToken, clearStorage } from '@/utils/storage';
 import { toast } from 'sonner';
+import LogoutButton from '@/components/LogoutButton';
 
 export default function MentorLayout() {
   const navigate = useNavigate();
@@ -27,11 +28,6 @@ export default function MentorLayout() {
   const currentTab = tabs.find((t) => location.pathname.startsWith(t.to));
   const headerTitle = currentTab ? titleMap[currentTab.to] : 'Mentor Dashboard';
 
-  const handleLogout = () => {
-    clearStorage();
-    toast.success('Đã đăng xuất');
-    navigate('/login');
-  };
 
   return (
     <div className='min-h-screen flex bg-background'>
@@ -62,15 +58,7 @@ export default function MentorLayout() {
         </nav>
 
         <div className='px-4 py-4 border-t border-border flex justify-center'>
-          <Button
-            variant='outline'
-            size='sm'
-            className='w-28 text-black !rounded-[10px] border py-3'
-            onClick={handleLogout}
-          >
-            <LogOut className='w-4 h-4 mr-2' />
-            Đăng xuất
-          </Button>
+          <LogoutButton />
         </div>
       </aside>
 
