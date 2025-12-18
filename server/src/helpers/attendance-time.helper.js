@@ -51,4 +51,19 @@ function buildTime(baseTime, offsetMinutes = 0) {
   
     return now >= early && now <= late;
   };
+
+  // =======================
+// CHECK AFTER CHECKOUT DEADLINE (FOR CRON)
+// =======================
+exports.isAfterCheckoutDeadline = (lab) => {
+  if (!lab.endTime || !lab.attendanceRule) return false;
+
+  const deadline = buildTime(
+    lab.endTime,
+    lab.attendanceRule.checkOutLateMinutes
+  );
+
+  return new Date() > deadline;
+};
+
   
