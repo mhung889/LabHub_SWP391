@@ -15,7 +15,8 @@ import {
 import AdminLabDetailModal from './Action/AdminLabDetailModal';
 import CreateLabModal from './Action/CreateLabModal';
 import DeleteLabModal from './Action/DeleteLabModal';
-import AdminLabManageDrawer from './Action/AdminLabManageDrawer';
+import AdminLabManageDrawer from './Action/AdminLabManageDrawer'; //edit lab
+import AdminLabStudentsDrawer from './Action/AdminLabStudentsDrawer'; // add student to lab
 
 import labApi from '@/api/labApi';
 import majorApi from '@/api/majorApi';
@@ -46,6 +47,11 @@ export default function AdminLabsPage() {
 
   const [isDetailOpen, setIsDetailOpen] = useState(false);
 
+  // add student
+  const [studentsDrawerOpen, setStudentsDrawerOpen] = useState(false);
+  const [labForStudents, setLabForStudents] = useState(null);
+  //end add
+
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState({
     total: 0,
@@ -54,16 +60,16 @@ export default function AdminLabsPage() {
     totalPages: 1,
   });
 
-  const [formData, setFormData] = useState({
-    name: '',
-    mentor: '',
-    total: '',
-    status: 'active',
-    description: '',
-    major: '',
-    startTime: '',
-    endTime: '',
-  });
+  // const [formData, setFormData] = useState({
+  //   name: '',
+  //   mentor: '',
+  //   total: '',
+  //   status: 'active',
+  //   description: '',
+  //   major: '',
+  //   startTime: '',
+  //   endTime: '',
+  // });
 
   const fetchLabs = async () => {
     try {
@@ -194,7 +200,7 @@ export default function AdminLabsPage() {
         err.response?.data?.message ||
         'Không thể xóa lab do đang có student hoặc mentor!';
 
-     //toast.error(message);
+      //toast.error(message);
 
       setError(message);
 
@@ -218,9 +224,9 @@ export default function AdminLabsPage() {
       </div>
 
       {/* Filter */}
-      <div className='row mb-4'>
+      <div className='row mb-4 '>
         {/* Search + nút tìm kiếm */}
-        <div className='col-md-4'>
+        <div className='col-md-5 '>
           <label className='form-label fw-semibold'>Tìm kiếm</label>
           <div className='input-group'>
             <input
@@ -240,7 +246,7 @@ export default function AdminLabsPage() {
         </div>
 
         {/* Majors */}
-        <div className='col-md-4'>
+        {/* <div className='col-md-4'>
           <label className='form-label fw-semibold'>Chuyên ngành</label>
           <select
             className='form-select'
@@ -254,9 +260,9 @@ export default function AdminLabsPage() {
               </option>
             ))}
           </select>
-        </div>
+        </div> */}
 
-        <div className='hidden md:block' />
+        {/* <div className='hidden md:block' /> */}
       </div>
 
       {loading && (
@@ -284,9 +290,9 @@ export default function AdminLabsPage() {
                     <p className='mt-1 text-sm text-muted-foreground'>
                       Mentor: {lab.mentor?.fullName || ''}
                     </p>
-                    <p className='text-balance text-muted-foreground'>
+                    {/* <p className='text-balance text-muted-foreground'>
                       Chuyên ngành: {lab.major?.name || ''}
-                    </p>
+                    </p> */}
                   </div>
                   <span
                     className={`rounded-full px-2 py-1 text-xs font-medium ${
@@ -295,13 +301,14 @@ export default function AdminLabsPage() {
                         : 'bg-red-500/10 text-red-600'
                     }`}
                   >
-                    {lab.status === 'active' ? 'Active' : 'InActive'}
+                    {lab.status === 'active' ? 'Hoạt động' : 'Không hoạt động'}
                   </span>
                 </div>
-                <p className='mb-4 text-sm text-muted-foreground'>
+                <p className='mb-5 text-sm text-muted-foreground'>
                   Chi tiết: {lab?.description}
                 </p>
 
+                {/*total student  */}
                 <div className='mb-4 flex items-center gap-2 rounded-lg bg-muted/50 p-3'>
                   <Users className='h-4 w-4 text-muted-foreground' />
                   <span className='text-sm font-medium text-foreground'>
@@ -323,6 +330,7 @@ export default function AdminLabsPage() {
                     }}
                   />
                 </div>
+                {/* end total student */}
 
                 <div className='mt-auto flex gap-2'>
                   <Button
@@ -335,7 +343,6 @@ export default function AdminLabsPage() {
                     }}
                   >
                     <Eye className='h-4 w-4' />
-                    Chi Tiết
                   </Button>
 
                   <Button
@@ -348,8 +355,20 @@ export default function AdminLabsPage() {
                     }}
                   >
                     <Edit2 className='h-4 w-4' />
-                    Sửa
                   </Button>
+
+                  <Button
+                    variant='outline'
+                    size='sm'
+                    className='flex-1 gap-2 bg-transparent'
+                    onClick={() => {
+                      setLabForStudents(lab);
+                      setStudentsDrawerOpen(true);
+                    }}
+                  >
+                    <Users className='h-4 w-4' />
+                  </Button>
+
                   <Button
                     variant='outline'
                     size='sm'
@@ -360,7 +379,6 @@ export default function AdminLabsPage() {
                     }}
                   >
                     <Trash2 className='h-4 w-4' />
-                    Xóa
                   </Button>
                 </div>
               </Card>
@@ -442,6 +460,13 @@ export default function AdminLabsPage() {
         lab={selectedLab}
         loading={loading}
         onUpdated={fetchLabs} // update labs
+      />
+
+      {/* view and add student to lab */}
+      <AdminLabStudentsDrawer
+        isOpen={studentsDrawerOpen}
+        onClose={() => setStudentsDrawerOpen(false)}
+        lab={labForStudents}
       />
     </div>
   );

@@ -1,11 +1,12 @@
-import axiosInstance from "./axiosInstance";
+import axiosInstance from './axiosInstance';
 
 const studentApi = {
-  getAll: () => axiosInstance.get("/students"),
+  getAll: () => axiosInstance.get('/students'),
   getById: (id) => axiosInstance.get(`/students/${id}`),
-  create: (data) => axiosInstance.post("/students", data),
+  create: (data) => axiosInstance.post('/students', data),
   update: (id, data) => axiosInstance.put(`/students/${id}`, data),
   delete: (id) => axiosInstance.delete(`/students/${id}`),
+  getMyStudents: () => axiosInstance.get('/students/my'), // list student of mentor manage
 };
 
 export default studentApi;

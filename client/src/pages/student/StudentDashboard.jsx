@@ -223,7 +223,7 @@ const StudentDashboard = () => {
                 <div className='text-center my-3'>
                   <div className='d-flex align-items-baseline justify-content-center'>
                     <span className='display-4 fw-bold text-primary-custom'>
-                      {leaveStats.remainingDays}
+                      {leaveStats.usedDays}
                     </span>
                     <span className='h4 text-secondary fw-normal'>
                       /{MAX_LEAVE_DAYS}

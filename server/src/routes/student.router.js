@@ -1,14 +1,25 @@
-const express = require("express");
+const express = require('express');
 const router = express.Router();
-const studentController = require("../controllers/student.controller");
+const studentController = require('../controllers/student.controller');
+const verifyToken = require('../middlewares/verify-token-middleware');
+const roleMiddleware = require('../middlewares/role.middleware');
 
+// MENTOR
+router.get(
+  '/my',
+  verifyToken,
+  roleMiddleware('mentor'),
+  studentController.getMyStudents
+);
 
-// router.get("/:id/check-face", studentController.checkFaceRegistered);
+// ========================
 // CRUD
-router.get("/", studentController.getAllStudents);
-router.get("/:id", studentController.getStudentById);
-router.post("/", studentController.createStudent);
-router.put("/:id", studentController.updateStudent);
-router.delete("/:id", studentController.deleteStudent);
+// ========================
+router.get('/', studentController.getAllStudents);
+
+router.get('/:id', studentController.getStudentById);
+router.post('/', studentController.createStudent);
+router.put('/:id', studentController.updateStudent);
+router.delete('/:id', studentController.deleteStudent);
 
 module.exports = router;

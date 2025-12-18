@@ -87,7 +87,7 @@ export default function AdminLabDetailModal({ isOpen, onClose, lab }) {
               </p>
             </div>
 
-            <div className='space-y-1'>
+            {/* <div className='space-y-1'>
               <p className='text-xs font-medium uppercase text-muted-foreground'>
                 Chuyên ngành
               </p>
@@ -96,7 +96,7 @@ export default function AdminLabDetailModal({ isOpen, onClose, lab }) {
                   ? lab.major.name || lab.major.code
                   : lab.major || 'Chưa gán chuyên ngành'}
               </p>
-            </div>
+            </div> */}
 
             <div className='space-y-1'>
               <p className='text-xs font-medium uppercase text-muted-foreground'>
@@ -117,23 +117,6 @@ export default function AdminLabDetailModal({ isOpen, onClose, lab }) {
             </div>
           </div>
 
-          {/* Optional extra: createdAt / updatedAt nếu có */}
-          {(lab.createdAt || lab.updatedAt) && (
-            <div className='mt-2 border-t border-border pt-3 text-xs text-muted-foreground'>
-              {lab.createdAt && (
-                <p>
-                  Tạo lúc:{' '}
-                  {new Date(lab.createdAt).toLocaleString('vi-VN')}
-                </p>
-              )}
-              {lab.updatedAt && (
-                <p>
-                  Cập nhật lần cuối:{' '}
-                  {new Date(lab.updatedAt).toLocaleString('vi-VN')}
-                </p>
-              )}
-            </div>
-          )}
         </div>
 
         {/* FOOTER */}

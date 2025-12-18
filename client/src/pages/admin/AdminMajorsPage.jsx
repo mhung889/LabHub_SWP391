@@ -184,7 +184,6 @@ export default function AdminMajorsPage() {
       <Card className="p-4">
         <div className="flex gap-4">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -426,7 +425,7 @@ export default function AdminMajorsPage() {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                {/* <div className="flex items-center gap-2">
                   <Building2 className="w-5 h-5 text-muted-foreground" />
                   <div>
                     <p className="text-sm text-muted-foreground">Số Lab</p>
@@ -434,7 +433,7 @@ export default function AdminMajorsPage() {
                       {selectedMajor.labCount || 0}
                     </p>
                   </div>
-                </div>
+                </div> */}
               </div>
 
               <div className="flex justify-end pt-4">

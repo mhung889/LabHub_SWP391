@@ -170,7 +170,7 @@ export default function CreateLabModal({
           </div>
 
           {/* Row 3: Total */}
-          <div>
+          <div className='w-[290px]'>
             <label className='mb-2 block text-sm font-medium text-foreground'>
               Sức Chứa
             </label>
@@ -186,7 +186,9 @@ export default function CreateLabModal({
 
           {/* Row 4: Major & Mentor */}
           <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
-            <div>
+            {/* major */}
+
+            {/* <div>
               <label className='mb-2 block text-sm font-medium text-foreground'>
                 Chuyên Ngành
               </label>
@@ -206,7 +208,7 @@ export default function CreateLabModal({
               {errors.major && (
                 <p className='mt-1 text-xs text-destructive'>{errors.major}</p>
               )}
-            </div>
+            </div> */}
 
             <div>
               <label className='mb-2 block text-sm font-medium text-foreground'>
