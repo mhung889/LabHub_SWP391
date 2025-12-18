@@ -183,13 +183,15 @@ exports.checkout = async (req, res) => {
     if (!imageBase64) throw new ErrorResponse(400, "Thiếu ảnh checkout");
 
     const user = await User.findById(req.user._id);
-    if (!user.faceToken)
+    if (!user.faceToken) {
       throw new ErrorResponse(400, "Bạn chưa đăng ký khuôn mặt");
+    }
 
     const student = await Student.findOne({ user: user._id });
     if (!student) throw new ErrorResponse(404, "Không tìm thấy student");
-    if (!student.lab)
+    if (!student.lab) {
       throw new ErrorResponse(400, "Bạn chưa được gán lab");
+    }
 
     // ===== LẤY LAB =====
     const lab = await Lab.findById(student.lab);
@@ -207,35 +209,57 @@ exports.checkout = async (req, res) => {
       );
     }
 
-    // ===== FIND ATTENDANCE =====
+    // ===== FACE DETECT =====
+    const faceTokenCheck = await detectFace(imageBase64);
+    if (!faceTokenCheck) {
+      throw new ErrorResponse(400, "Không nhận diện được khuôn mặt");
+    }
+
+    const confidence = await compareFaces(user.faceToken, faceTokenCheck);
+    if (confidence < 75) {
+      throw new ErrorResponse(400, "Khuôn mặt không khớp");
+    }
+
+    // ===== DATE =====
     const today = new Date();
     const dateOnly = new Date(today.toISOString().split("T")[0]);
 
-    const attendance = await LabAttendance.findOne({
+    // ===== FIND ATTENDANCE =====
+    let attendance = await LabAttendance.findOne({
       student: student._id,
       lab: student.lab,
       date: dateOnly,
     });
 
-    if (!attendance || !attendance.checkInTime) {
-      throw new ErrorResponse(400, "Bạn chưa check-in hôm nay");
+    // =====================================
+    // CASE 1: ĐẾN TRỄ - CHỈ CHECKOUT
+    // =====================================
+    if (!attendance) {
+      attendance = await LabAttendance.create({
+        student: student._id,
+        lab: student.lab,
+        date: dateOnly,
+        checkOutTime: new Date(),
+        status: "late",
+      });
+
+      return res.json({
+        message: "Check-out thành công (đến trễ)",
+        attendance,
+      });
     }
 
+    // =====================================
+    // CASE 2: ĐÃ CHECKOUT RỒI
+    // =====================================
     if (attendance.checkOutTime) {
       throw new ErrorResponse(400, "Bạn đã check-out hôm nay");
     }
 
-    // ===== FACE DETECT =====
-    const faceTokenCheck = await detectFace(imageBase64);
-    if (!faceTokenCheck)
-      throw new ErrorResponse(400, "Không nhận diện được khuôn mặt");
-
-    const confidence = await compareFaces(user.faceToken, faceTokenCheck);
-    if (confidence < 75)
-      throw new ErrorResponse(400, "Khuôn mặt không khớp");
-
+    // =====================================
+    // CASE 3: CHECKIN TRƯỚC ĐÓ → HOÀN THÀNH
+    // =====================================
     attendance.checkOutTime = new Date();
-    attendance.checkOutConfidence = confidence;
     attendance.status = "completed";
 
     await attendance.save();
@@ -250,5 +274,6 @@ exports.checkout = async (req, res) => {
       .json({ message: err.message });
   }
 };
+
 
 

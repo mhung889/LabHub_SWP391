@@ -28,4 +28,6 @@ app.use(cookieParser());
 const routes = require("./routes/index");
 routes(app);
 
+require("./cron/attendance.cron");
+
 module.exports = app;
