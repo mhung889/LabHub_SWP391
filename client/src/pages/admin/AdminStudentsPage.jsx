@@ -130,8 +130,18 @@ export default function AdminStudentsPage() {
     if (!/^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/.test(formData.email))
       newErrors.email = "Email không đúng định dạng";
 
-    if (!/^(0[3|5|7|8|9])[0-9]{8}$/.test(formData.phone))
-      newErrors.phone = "Số điện thoại không hợp lệ";
+    // validate phone: optional but if filled must be 10-11 digits
+    if (!formData.phone || !formData.phone.trim()) {
+      newErrors.phone = "Số điện thoại không được để trống";
+    } else {
+      const phoneRegex = /^[0-9]{10,11}$/;
+      const cleanPhone = formData.phone.trim().replace(/[\s-]/g, "");
+      if (!phoneRegex.test(cleanPhone)) {
+        newErrors.phone = "Số điện thoại không hợp lệ (10-11 chữ số)";
+      } else if (cleanPhone.length > 20) {
+        newErrors.phone = "Số điện thoại không được vượt quá 20 ký tự";
+      }
+    }
 
     if (!formData.gender) newErrors.gender = "Hãy chọn giới tính";
 
@@ -165,11 +175,18 @@ export default function AdminStudentsPage() {
 
     if (!formData.startDate) newErrors.startDate = "Hãy chọn ngày bắt đầu";
 
-    if (
-      formData.emergencyPhone &&
-      !/^(0[3|5|7|8|9])[0-9]{8}$/.test(formData.emergencyPhone)
-    )
-      newErrors.emergencyPhone = "Số khẩn cấp không hợp lệ";
+    if (formData.emergencyPhone && formData.emergencyPhone.trim()) {
+      const phoneRegex = /^[0-9]{10,11}$/;
+      const cleanEmergency = formData.emergencyPhone
+        .trim()
+        .replace(/[\s-]/g, "");
+      if (!phoneRegex.test(cleanEmergency)) {
+        newErrors.emergencyPhone = "Số khẩn cấp không hợp lệ (10-11 chữ số)";
+      } else if (cleanEmergency.length > 20) {
+        newErrors.emergencyPhone =
+          "Số khẩn cấp không được vượt quá 20 ký tự";
+      }
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;

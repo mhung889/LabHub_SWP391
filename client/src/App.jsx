@@ -28,6 +28,7 @@ import MentorTasksPage from './pages/mentor/MentorTasksPage';
 import MentorStudentsPage from './pages/mentor/MentorStudentsPage';
 import MentorLeaveRequestsPage from './pages/mentor/MentorLeaveRequestsPage';
 import MentorNotificationsPage from './pages/mentor/MentorNotificationsPage';
+import MentorProfile from './pages/mentor/MentorProfile';
 
 import Forbidden from './pages/Forbidden';
 import { RequireAuth, RequireRole } from '@/routes/guards';
@@ -85,6 +86,7 @@ function App() {
                   path='notifications'
                   element={<MentorNotificationsPage />}
                 />
+                <Route path='profile' element={<MentorProfile />} />
               </Route>
             </Route>
 
