@@ -33,6 +33,24 @@ const taskApi = {
   deleteTask(id) {
     return axiosInstance.delete(`/tasks/${id}`);
   },
+
+  // Student APIs
+  getMyTasks(params = {}) {
+    const queryParams = new URLSearchParams();
+    if (params.page) queryParams.append('page', params.page);
+    if (params.limit) queryParams.append('limit', params.limit);
+    
+    const queryString = queryParams.toString();
+    return axiosInstance.get(`/tasks/student/my-tasks${queryString ? `?${queryString}` : ''}`);
+  },
+
+  getMyTaskById(id) {
+    return axiosInstance.get(`/tasks/student/my-tasks/${id}`);
+  },
+
+  updateMyTaskProgress(id, data) {
+    return axiosInstance.patch(`/tasks/student/my-tasks/${id}/progress`, data);
+  },
 };
 
 export default taskApi;

@@ -25,10 +25,14 @@ export default function MentorTasksPage() {
     startDate: "",
     dueDate: "",
     priority: "medium",
+    complexity: "medium",
+    status: "Open",
+    studentId: "",
   });
   const [formErrors, setFormErrors] = useState({});
   const [availableStudents, setAvailableStudents] = useState([]);
-  const [selectedStudents, setSelectedStudents] = useState([]);
+  const [selectedStudent, setSelectedStudent] = useState("");
+  const [loadingStudents, setLoadingStudents] = useState(false);
 
   const loadTasks = async (page = 1) => {
     try {
@@ -58,7 +62,26 @@ export default function MentorTasksPage() {
     loadTasks(1);
   }, []);
 
-  const handleAddTask = () => {
+  const loadStudents = async () => {
+    try {
+      setLoadingStudents(true);
+      // Lấy danh sách student từ task assignment API
+      const response = await taskApi.getTasks({ page: 1, limit: 1 });
+      if (response.data.tasks && response.data.tasks.length > 0) {
+        const studentsResponse = await taskApi.getAssignedStudents(response.data.tasks[0]._id);
+        setAvailableStudents(studentsResponse.data.students || []);
+      } else {
+        setAvailableStudents([]);
+      }
+    } catch (error) {
+      console.error("Error loading students:", error);
+      setAvailableStudents([]);
+    } finally {
+      setLoadingStudents(false);
+    }
+  };
+
+  const handleAddTask = async () => {
     setEditingTask(null);
     setFormData({
       taskTitle: "",
@@ -66,26 +89,51 @@ export default function MentorTasksPage() {
       startDate: "",
       dueDate: "",
       priority: "medium",
-      status: "active",
+      complexity: "medium",
+      status: "Open",
+      studentId: "",
     });
     setFormErrors({});
+    await loadStudents();
     setShowForm(true);
   };
 
-  const handleEditTask = (task) => {
+  const handleEditTask = async (task) => {
     setEditingTask(task);
-    setFormData({
-      taskTitle: task.taskTitle || "",
-      description: task.description || "",
-      startDate: task.startDate
-        ? new Date(task.startDate).toISOString().split("T")[0]
-        : "",
-      dueDate: task.dueDate
-        ? new Date(task.dueDate).toISOString().split("T")[0]
-        : "",
-      priority: task.priority || "medium",
-      status: task.status || "active",
-    });
+    await loadStudents();
+    try {
+      const studentsResponse = await taskApi.getAssignedStudents(task._id);
+      const assignedStudent = studentsResponse.data.students.find((s) => s.isAssigned);
+      setFormData({
+        taskTitle: task.taskTitle || "",
+        description: task.description || "",
+        startDate: task.startDate
+          ? new Date(task.startDate).toISOString().split("T")[0]
+          : "",
+        dueDate: task.dueDate
+          ? new Date(task.dueDate).toISOString().split("T")[0]
+          : "",
+        priority: task.priority || "medium",
+        complexity: task.complexity || "medium",
+        status: task.status || "Open",
+        studentId: assignedStudent ? assignedStudent._id : "",
+      });
+    } catch (error) {
+      setFormData({
+        taskTitle: task.taskTitle || "",
+        description: task.description || "",
+        startDate: task.startDate
+          ? new Date(task.startDate).toISOString().split("T")[0]
+          : "",
+        dueDate: task.dueDate
+          ? new Date(task.dueDate).toISOString().split("T")[0]
+          : "",
+        priority: task.priority || "medium",
+        complexity: task.complexity || "medium",
+        status: task.status || "Open",
+        studentId: "",
+      });
+    }
     setFormErrors({});
     setShowForm(true);
   };
@@ -110,10 +158,8 @@ export default function MentorTasksPage() {
       const response = await taskApi.getAssignedStudents(task._id);
       setAvailableStudents(response.data.students || []);
       setSelectedTask(task);
-      const alreadyAssigned = response.data.students
-        .filter((s) => s.isAssigned)
-        .map((s) => s._id);
-      setSelectedStudents(alreadyAssigned);
+      const alreadyAssigned = response.data.students.find((s) => s.isAssigned);
+      setSelectedStudent(alreadyAssigned ? alreadyAssigned._id : "");
       setShowAssignModal(true);
     } catch (error) {
       console.error("Error loading students:", error);
@@ -153,11 +199,17 @@ export default function MentorTasksPage() {
 
     try {
       setLoading(true);
+      // Đảm bảo status luôn có giá trị hợp lệ
+      const submitData = {
+        ...formData,
+        status: formData.status || "Open",
+      };
+      
       if (editingTask) {
-        await taskApi.updateTask(editingTask._id, formData);
+        await taskApi.updateTask(editingTask._id, submitData);
         alert("Cập nhật task thành công");
       } else {
-        await taskApi.createTask(formData);
+        await taskApi.createTask(submitData);
         alert("Tạo task thành công");
       }
       setShowForm(false);
@@ -172,18 +224,19 @@ export default function MentorTasksPage() {
   };
 
   const handleAssignSubmit = async () => {
-    if (selectedStudents.length === 0) {
-      alert("Vui lòng chọn ít nhất một student");
+    if (!selectedStudent) {
+      alert("Vui lòng chọn một student");
       return;
     }
 
     try {
       setLoading(true);
       await taskApi.assignTask(selectedTask._id, {
-        studentIds: selectedStudents,
+        studentId: selectedStudent,
       });
       alert("Gán task thành công");
       setShowAssignModal(false);
+      setSelectedStudent("");
       await loadTasks(pagination.page);
     } catch (error) {
       console.error("Error assigning task:", error);
@@ -211,12 +264,8 @@ export default function MentorTasksPage() {
     }
   };
 
-  const toggleStudent = (studentId) => {
-    setSelectedStudents((prev) =>
-      prev.includes(studentId)
-        ? prev.filter((id) => id !== studentId)
-        : [...prev, studentId]
-    );
+  const selectStudent = (studentId) => {
+    setSelectedStudent(studentId);
   };
 
   const getPriorityColor = (priority) => {
@@ -242,6 +291,55 @@ export default function MentorTasksPage() {
         return "Thấp";
       default:
         return priority;
+    }
+  };
+
+  const getComplexityLabel = (complexity) => {
+    switch (complexity) {
+      case "easy":
+        return "Dễ";
+      case "medium":
+        return "Trung bình";
+      case "complex":
+        return "Phức tạp";
+      case "veryComplex":
+        return "Rất phức tạp";
+      default:
+        return complexity;
+    }
+  };
+
+  const getComplexityColor = (complexity) => {
+    switch (complexity) {
+      case "easy":
+        return "bg-green-500/10 text-green-600";
+      case "medium":
+        return "bg-blue-500/10 text-blue-600";
+      case "complex":
+        return "bg-orange-500/10 text-orange-600";
+      case "veryComplex":
+        return "bg-red-500/10 text-red-600";
+      default:
+        return "bg-gray-500/10 text-gray-600";
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "Open":
+        return "bg-blue-500/10 text-blue-600";
+      case "To do":
+        return "bg-gray-500/10 text-gray-600";
+      case "In progress":
+        return "bg-yellow-500/10 text-yellow-600";
+      case "Reviewing":
+        return "bg-purple-500/10 text-purple-600";
+      case "Done":
+        return "bg-emerald-500/10 text-emerald-600";
+      case "Cancel":
+        return "bg-red-500/10 text-red-600";
+      default:
+        return "bg-gray-500/10 text-gray-600";
     }
   };
 
@@ -360,23 +458,71 @@ export default function MentorTasksPage() {
                 </select>
               </div>
 
-              {editingTask && (
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    Trạng Thái
-                  </label>
-                  <select
-                    className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground"
-                    value={formData.status}
-                    onChange={(e) =>
-                      setFormData({ ...formData, status: e.target.value })
-                    }
-                  >
-                    <option value="active">Hoạt động</option>
-                    <option value="closed">Đã đóng</option>
-                  </select>
-                </div>
-              )}
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Mức Độ Phức Tạp
+                </label>
+                <select
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground"
+                  value={formData.complexity}
+                  onChange={(e) =>
+                    setFormData({ ...formData, complexity: e.target.value })
+                  }
+                >
+                  <option value="easy">Dễ</option>
+                  <option value="medium">Trung bình</option>
+                  <option value="complex">Phức tạp</option>
+                  <option value="veryComplex">Rất phức tạp</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Trạng Thái
+                </label>
+                <select
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground"
+                  value={formData.status}
+                  onChange={(e) =>
+                    setFormData({ ...formData, status: e.target.value })
+                  }
+                >
+                  <option value="Open">Open</option>
+                  <option value="To do">To do</option>
+                  <option value="In progress">In progress</option>
+                  <option value="Reviewing">Reviewing</option>
+                  <option value="Done">Done</option>
+                  <option value="Cancel">Cancel</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Gán Cho Sinh Viên
+                </label>
+                <select
+                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground"
+                  value={formData.studentId}
+                  onChange={(e) =>
+                    setFormData({ ...formData, studentId: e.target.value })
+                  }
+                  disabled={loadingStudents}
+                >
+                  <option value="">-- Chọn sinh viên (tùy chọn) --</option>
+                  {availableStudents.map((student) => (
+                    <option key={student._id} value={student._id}>
+                      {student.fullName} {student.isAssigned && "(Đã gán)"}
+                    </option>
+                  ))}
+                </select>
+                {loadingStudents && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Đang tải danh sách sinh viên...
+                  </p>
+                )}
+              </div>
             </div>
 
             <div className="flex gap-2">
@@ -433,7 +579,7 @@ export default function MentorTasksPage() {
                       Độ Ưu Tiên
                     </th>
                     <th className="text-left px-6 py-4 font-bold text-foreground">
-                      Số SV Đã Gán
+                      Mức Độ Phức Tạp
                     </th>
                     <th className="text-left px-6 py-4 font-bold text-foreground">
                       Trạng Thái
@@ -468,19 +614,21 @@ export default function MentorTasksPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="inline-block bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-medium">
-                          {task.assignedStudentsCount || 0}
+                        <span
+                          className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getComplexityColor(
+                            task.complexity || "medium"
+                          )}`}
+                        >
+                          {getComplexityLabel(task.complexity || "medium")}
                         </span>
                       </td>
                       <td className="px-6 py-4">
                         <span
-                          className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
-                            task.status === "active"
-                              ? "bg-emerald-500/10 text-emerald-600"
-                              : "bg-gray-500/10 text-gray-600"
-                          }`}
+                          className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(
+                            task.status || "Open"
+                          )}`}
                         >
-                          {task.status === "active" ? "Hoạt động" : "Đã đóng"}
+                          {task.status || "Open"}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-center">
@@ -626,14 +774,20 @@ export default function MentorTasksPage() {
                   </div>
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">
-                      Trạng Thái
+                      Mức Độ Phức Tạp
                     </label>
                     <p className="text-foreground">
-                      {selectedTask.status === "active"
-                        ? "Hoạt động"
-                        : "Đã đóng"}
+                      {getComplexityLabel(selectedTask.complexity || "medium")}
                     </p>
                   </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    Trạng Thái
+                  </label>
+                  <p className="text-foreground">
+                    {selectedTask.status || "Open"}
+                  </p>
                 </div>
 
                 {selectedTask.assignedStudents &&
@@ -715,19 +869,25 @@ export default function MentorTasksPage() {
 
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">
-                  Chọn các student để gán task này
+                  Chọn một student để gán task này
                 </p>
 
                 <div className="space-y-2 max-h-96 overflow-y-auto">
                   {availableStudents.map((student) => (
                     <div
                       key={student._id}
-                      className="flex items-center gap-3 p-3 border border-border rounded-lg hover:bg-muted/50"
+                      className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
+                        selectedStudent === student._id
+                          ? "border-primary bg-primary/5"
+                          : "border-border hover:bg-muted/50"
+                      }`}
+                      onClick={() => selectStudent(student._id)}
                     >
                       <input
-                        type="checkbox"
-                        checked={selectedStudents.includes(student._id)}
-                        onChange={() => toggleStudent(student._id)}
+                        type="radio"
+                        name="selectedStudent"
+                        checked={selectedStudent === student._id}
+                        onChange={() => selectStudent(student._id)}
                         className="w-4 h-4"
                       />
                       <div className="flex-1">
@@ -761,8 +921,8 @@ export default function MentorTasksPage() {
                 >
                   Hủy
                 </Button>
-                <Button onClick={handleAssignSubmit} disabled={loading}>
-                  Gán Task ({selectedStudents.length})
+                <Button onClick={handleAssignSubmit} disabled={loading || !selectedStudent}>
+                  Gán Task
                 </Button>
               </div>
             </div>

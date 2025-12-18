@@ -23,8 +23,10 @@ export default function MentorDashboard() {
       const tasksResponse = await taskApi.getTasks({ page: 1, limit: 10 });
       const tasks = tasksResponse.data.tasks || [];
       
-      const activeTasks = tasks.filter((t) => t.status === "active");
-      const completedTasks = tasks.filter((t) => t.status === "closed");
+      const activeTasks = tasks.filter((t) => 
+        t.status && ["Open", "To do", "In progress", "Reviewing"].includes(t.status)
+      );
+      const completedTasks = tasks.filter((t) => t.status === "Done");
 
       let totalStudents = 0;
       for (const task of tasks) {
@@ -107,6 +109,55 @@ export default function MentorDashboard() {
     }
   };
 
+  const getComplexityLabel = (complexity) => {
+    switch (complexity) {
+      case "easy":
+        return "Dễ";
+      case "medium":
+        return "Trung bình";
+      case "complex":
+        return "Phức tạp";
+      case "veryComplex":
+        return "Rất phức tạp";
+      default:
+        return complexity || "Trung bình";
+    }
+  };
+
+  const getComplexityColor = (complexity) => {
+    switch (complexity) {
+      case "easy":
+        return "bg-green-500/10 text-green-600";
+      case "medium":
+        return "bg-blue-500/10 text-blue-600";
+      case "complex":
+        return "bg-orange-500/10 text-orange-600";
+      case "veryComplex":
+        return "bg-red-500/10 text-red-600";
+      default:
+        return "bg-gray-500/10 text-gray-600";
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "Open":
+        return "bg-blue-500/10 text-blue-600";
+      case "To do":
+        return "bg-gray-500/10 text-gray-600";
+      case "In progress":
+        return "bg-yellow-500/10 text-yellow-600";
+      case "Reviewing":
+        return "bg-purple-500/10 text-purple-600";
+      case "Done":
+        return "bg-emerald-500/10 text-emerald-600";
+      case "Cancel":
+        return "bg-red-500/10 text-red-600";
+      default:
+        return "bg-gray-500/10 text-gray-600";
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -156,7 +207,7 @@ export default function MentorDashboard() {
                   <p className="text-foreground font-medium">
                     {task.taskTitle}
                   </p>
-                  <div className="flex items-center gap-4 mt-2">
+                  <div className="flex items-center gap-4 mt-2 flex-wrap">
                     <span className="text-muted-foreground text-sm">
                       Bắt đầu: {formatDate(task.startDate)}
                     </span>
@@ -170,19 +221,24 @@ export default function MentorDashboard() {
                     >
                       {getPriorityLabel(task.priority)}
                     </span>
+                    <span
+                      className={`text-xs px-2 py-1 rounded ${getComplexityColor(
+                        task.complexity || "medium"
+                      )}`}
+                    >
+                      {getComplexityLabel(task.complexity || "medium")}
+                    </span>
                     <span className="text-muted-foreground text-sm">
                       {task.assignedStudentsCount || 0} sinh viên
                     </span>
                   </div>
                 </div>
                 <span
-                  className={`text-xs px-3 py-1 rounded-full ${
-                    task.status === "active"
-                      ? "bg-emerald-500/10 text-emerald-600"
-                      : "bg-gray-500/10 text-gray-600"
-                  }`}
+                  className={`text-xs px-3 py-1 rounded-full ${getStatusColor(
+                    task.status || "Open"
+                  )}`}
                 >
-                  {task.status === "active" ? "Hoạt động" : "Đã đóng"}
+                  {task.status || "Open"}
                 </span>
               </div>
             ))}

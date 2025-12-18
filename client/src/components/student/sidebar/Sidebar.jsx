@@ -46,6 +46,11 @@ const Sidebar = ({ user, items }) => {
     //   label: "Lịch sử điểm danh",
     // },
     {
+      to: '/student/tasks',
+      icon: 'task',
+      label: 'Quản Lý Task',
+    },
+    {
       to: '/student/leave',
       icon: 'event_busy',
       label: 'Đơn xin nghỉ',
