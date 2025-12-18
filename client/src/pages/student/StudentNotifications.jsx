@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Sidebar from '../../components/student/sidebar/Sidebar';
 import { Container, Card, Form, Button, Badge, Modal } from 'react-bootstrap';
+import { Eye } from 'lucide-react';
 import { getAccessToken } from '../../utils/storage';
 import { getStudentNotifications, markNotificationRead } from '../../api/notificationApi';
 
@@ -9,6 +10,8 @@ export default function StudentNotifications() {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const pageSize = 5;
 
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
@@ -21,6 +24,7 @@ export default function StudentNotifications() {
       const res = await getStudentNotifications({ search: q });
       setNotifications(res.data.notifications || []);
       setUnreadCount(res.data.unreadCount || 0);
+      setPage(1);
     } catch (err) {
       console.error(err);
       alert(err.response?.data?.message || 'Lỗi tải thông báo');
@@ -90,7 +94,9 @@ export default function StudentNotifications() {
 
           <div className="d-flex flex-column gap-2">
             {notifications.length === 0 && <div className="text-muted">Không có thông báo</div>}
-            {notifications.map((n) => (
+            {notifications
+              .slice((page - 1) * pageSize, page * pageSize)
+              .map((n) => (
               <Card key={n._id} className={`p-3 ${n.isRead ? '' : 'border border-primary'}`}>
                 <div className="d-flex justify-content-between align-items-start">
                   <div>
@@ -101,7 +107,7 @@ export default function StudentNotifications() {
                               {n.target === 'student' ? (
                                 <Badge bg="secondary" className="ms-2">Riêng</Badge>
                               ) : (
-                                <Badge bg="info" className="ms-2">Lab</Badge>
+                                <Badge bg="info" className="ms-2">Phòng Lab</Badge>
                               )}
                             </h5>
                     <div className="text-muted small">{new Date(n.createdAt).toLocaleString()}</div>
@@ -112,12 +118,48 @@ export default function StudentNotifications() {
                     </p>
                   </div>
                   <div className="ms-3 d-flex flex-column gap-2">
-                    <Button size="sm" onClick={()=>openNotification(n)}>Xem</Button>
+                    <Button
+                      size="sm"
+                      variant="outline-secondary"
+                      onClick={() => openNotification(n)}
+                      title="Xem thông báo"
+                    >
+                      <Eye size={16} />
+                    </Button>
                   </div>
                 </div>
               </Card>
             ))}
           </div>
+          {notifications.length > pageSize && (
+            <div className="d-flex justify-content-between align-items-center mt-3">
+              <div className="text-muted small">
+                Trang {page} / {Math.ceil(notifications.length / pageSize)}
+              </div>
+              <div className="d-flex gap-2">
+                <Button
+                  variant="outline-secondary"
+                  size="sm"
+                  disabled={page === 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                >
+                  Trước
+                </Button>
+                <Button
+                  variant="outline-secondary"
+                  size="sm"
+                  disabled={page === Math.ceil(notifications.length / pageSize)}
+                  onClick={() =>
+                    setPage((p) =>
+                      Math.min(Math.ceil(notifications.length / pageSize), p + 1),
+                    )
+                  }
+                >
+                  Sau
+                </Button>
+              </div>
+            </div>
+          )}
           
           <Modal show={showModal} onHide={handleClose} centered>
             <Modal.Header closeButton>

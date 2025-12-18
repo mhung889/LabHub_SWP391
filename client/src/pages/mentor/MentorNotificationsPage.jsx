@@ -10,11 +10,13 @@ import mentorApi from '../../api/mentorApi';
 import { getUserInfo } from '../../utils/storage';
 import { Card, Button, Form, Modal, Badge } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Eye, Edit2, Trash2 } from 'lucide-react';
 
 export default function MentorNotificationsPage() {
   const [list, setList] = useState([]);
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const pageSize = 5;
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({
@@ -92,6 +94,7 @@ export default function MentorNotificationsPage() {
       if (lab) params.lab = lab;
       const res = await getNotifications(params);
       setList(res.data.notifications || []);
+      setPage(1);
     } catch (err) {
       console.error(err);
       alert(err.response?.data?.message || 'Lỗi');
@@ -184,7 +187,7 @@ export default function MentorNotificationsPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-          <Button type='submit'>Search</Button>
+          <Button type='submit'>Tìm</Button>
           {/* <Button
             variant='secondary'
             type='button'
@@ -199,13 +202,14 @@ export default function MentorNotificationsPage() {
       </Card>
 
       <div>
-        {list.map((n) => (
+        {list
+          .slice((page - 1) * pageSize, page * pageSize)
+          .map((n) => (
           <Card key={n._id} className='p-3 mb-2'>
             <div className='d-flex justify-content-between'>
               <div>
                 <h5 className='mb-1'>
-                  {n.title && n.title.length > 20 ? n.title.slice(0, 20) + '...' : n.title}
-                  {!n.isRead && <Badge bg='danger' className='ms-2'>Mới</Badge>}
+                  {n.title && n.title.length > 20 ? n.title.slice(0, 20) + '...' : n.title}  
                   {n.isImportant && <Badge bg='warning' text='dark' className='ms-2'>Quan trọng</Badge>}
                   {n.target === 'student' ? (
                     <Badge bg='secondary' className='ms-2'>Sinh viên</Badge>
@@ -220,15 +224,15 @@ export default function MentorNotificationsPage() {
                   {n.content && n.content.length > 20 ? n.content.slice(0, 20) + '...' : n.content}
                 </p>
               </div>
-              <div className='d-flex flex-column gap-2 ms-3'>
-                <div className='d-flex flex-column gap-2 ms-3'>
+              <div className='d-flex align-items-center ms-3'>
+                <div className='d-flex gap-2'>
                   <Button
                     size='sm'
                     variant='outline-secondary'
                     onClick={() => { setViewSelected(n); setShowViewModal(true); }}
                     title='Xem thông báo'
                   >
-                    Xem
+                    <Eye size={16} />
                   </Button>
                   <Button
                     size='sm'
@@ -236,9 +240,8 @@ export default function MentorNotificationsPage() {
                     onClick={() => openEdit(n)}
                     title='Sửa thông báo'
                   >
-                    <Pencil size={16} />
+                    <Edit2 size={16} />
                   </Button>
-
                   <Button
                     size='sm'
                     variant='outline-danger'
@@ -253,6 +256,34 @@ export default function MentorNotificationsPage() {
           </Card>
         ))}
       </div>
+
+      {list.length > pageSize && (
+        <div className='d-flex justify-content-between align-items-center mt-3'>
+          <div className='text-muted small'>
+            Trang {page} / {Math.ceil(list.length / pageSize)}
+          </div>
+          <div className='d-flex gap-2'>
+            <Button
+              variant='outline-secondary'
+              size='sm'
+              disabled={page === 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              Trước
+            </Button>
+            <Button
+              variant='outline-secondary'
+              size='sm'
+              disabled={page === Math.ceil(list.length / pageSize)}
+              onClick={() =>
+                setPage((p) => Math.min(Math.ceil(list.length / pageSize), p + 1))
+              }
+            >
+              Sau
+            </Button>
+          </div>
+        </div>
+      )}
 
       <Modal show={showModal} onHide={() => setShowModal(false)}>
         <Modal.Header closeButton>
