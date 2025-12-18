@@ -77,5 +77,12 @@ router.patch(
   asyncMiddleware(taskController.updateMyTaskProgress)
 );
 
+router.post(
+  '/student/my-tasks',
+  asyncMiddleware(verifyToken),
+  roleMiddleware('student'),
+  asyncMiddleware(taskController.createMyTask)
+);
+
 module.exports = router;
 

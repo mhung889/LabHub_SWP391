@@ -667,7 +667,7 @@ exports.updateMyTaskProgress = async (req, res) => {
   try {
     const userId = req.user._id;
     const { id } = req.params;
-    const { progressStatus, progressNote, submissionFile } = req.body;
+    const { status, note, progressStatus, progressNote, submissionFile } = req.body;
 
     if (req.user.role !== 'student') {
       throw new ErrorResponse(403, 'Chỉ student mới có quyền cập nhật task');
@@ -689,41 +689,69 @@ exports.updateMyTaskProgress = async (req, res) => {
     const assignment = await TaskAssignmentModel.findOne({
       task: id,
       student: student._id,
-    });
+    }).populate('task');
 
-    if (!assignment) {
+    if (!assignment || !assignment.task) {
       throw new ErrorResponse(404, 'Không tìm thấy task hoặc task chưa được gán cho bạn');
     }
 
-    const updateData = {};
+    const task = assignment.task;
+    const updateTaskData = {};
+    const updateAssignmentData = {};
 
+    // Cập nhật status của task
+    if (status !== undefined) {
+      if (!['Open', 'To do', 'In progress', 'Reviewing', 'Done', 'Cancel'].includes(status)) {
+        throw new ErrorResponse(400, 'Trạng thái không hợp lệ');
+      }
+      updateTaskData.status = status;
+    }
+
+    // Cập nhật note (lưu vào progressNote)
+    if (note !== undefined) {
+      if (note && note.trim().length > 500) {
+        throw new ErrorResponse(400, 'Ghi chú không được vượt quá 500 ký tự');
+      }
+      updateAssignmentData.progressNote = note?.trim() || '';
+    }
+
+    // Giữ lại các field cũ nếu cần
     if (progressStatus !== undefined) {
       if (!['notStarted', 'inProgress', 'completed'].includes(progressStatus)) {
         throw new ErrorResponse(400, 'Trạng thái tiến độ không hợp lệ');
       }
-      updateData.progressStatus = progressStatus;
+      updateAssignmentData.progressStatus = progressStatus;
     }
 
     if (progressNote !== undefined) {
       if (progressNote && progressNote.trim().length > 500) {
         throw new ErrorResponse(400, 'Ghi chú không được vượt quá 500 ký tự');
       }
-      updateData.progressNote = progressNote?.trim() || '';
+      updateAssignmentData.progressNote = progressNote?.trim() || '';
     }
 
     if (submissionFile !== undefined) {
-      updateData.submissionFile = submissionFile?.trim() || '';
+      updateAssignmentData.submissionFile = submissionFile?.trim() || '';
       if (submissionFile && submissionFile.trim()) {
-        updateData.submittedAt = new Date();
+        updateAssignmentData.submittedAt = new Date();
       }
     }
 
-    // Cập nhật assignment
-    Object.keys(updateData).forEach((key) => {
-      assignment[key] = updateData[key];
-    });
+    // Cập nhật task
+    if (Object.keys(updateTaskData).length > 0) {
+      Object.keys(updateTaskData).forEach((key) => {
+        task[key] = updateTaskData[key];
+      });
+      await task.save({ validateBeforeSave: true });
+    }
 
-    await assignment.save({ validateBeforeSave: true });
+    // Cập nhật assignment
+    if (Object.keys(updateAssignmentData).length > 0) {
+      Object.keys(updateAssignmentData).forEach((key) => {
+        assignment[key] = updateAssignmentData[key];
+      });
+      await assignment.save({ validateBeforeSave: true });
+    }
 
     // Lấy lại assignment đã cập nhật
     const updatedAssignment = await TaskAssignmentModel.findById(assignment._id)
@@ -746,6 +774,100 @@ exports.updateMyTaskProgress = async (req, res) => {
     }
     console.error('Error in updateMyTaskProgress:', error);
     throw new ErrorResponse(500, 'Lỗi khi cập nhật tiến độ task');
+  }
+};
+
+// Student tạo task mới cho bản thân
+exports.createMyTask = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    if (req.user.role !== 'student') {
+      throw new ErrorResponse(403, 'Chỉ student mới có quyền tạo task');
+    }
+
+    const { taskTitle, description, startDate, dueDate, priority, complexity, status } = req.body;
+
+    if (!taskTitle || !taskTitle.trim()) {
+      throw new ErrorResponse(400, 'Tiêu đề task là bắt buộc');
+    }
+
+    if (taskTitle.trim().length > 200) {
+      throw new ErrorResponse(400, 'Tiêu đề task không được vượt quá 200 ký tự');
+    }
+
+    if (!startDate) {
+      throw new ErrorResponse(400, 'Ngày bắt đầu là bắt buộc');
+    }
+
+    if (!dueDate) {
+      throw new ErrorResponse(400, 'Ngày hết hạn là bắt buộc');
+    }
+
+    const start = new Date(startDate);
+    const due = new Date(dueDate);
+
+    if (isNaN(start.getTime())) {
+      throw new ErrorResponse(400, 'Ngày bắt đầu không hợp lệ');
+    }
+
+    if (isNaN(due.getTime())) {
+      throw new ErrorResponse(400, 'Ngày hết hạn không hợp lệ');
+    }
+
+    if (start > due) {
+      throw new ErrorResponse(400, 'Ngày bắt đầu phải nhỏ hơn hoặc bằng ngày hết hạn');
+    }
+
+    if (priority && !['low', 'medium', 'high'].includes(priority)) {
+      throw new ErrorResponse(400, 'Độ ưu tiên không hợp lệ');
+    }
+
+    if (complexity && !['easy', 'medium', 'complex', 'veryComplex'].includes(complexity)) {
+      throw new ErrorResponse(400, 'Mức độ phức tạp không hợp lệ');
+    }
+
+    if (status && !['Open', 'To do', 'In progress', 'Reviewing', 'Done', 'Cancel'].includes(status)) {
+      throw new ErrorResponse(400, 'Trạng thái không hợp lệ');
+    }
+
+    // Tìm student từ userId
+    const StudentModel = require('../models/student-model');
+    const student = await StudentModel.findOne({ user: userId });
+
+    if (!student) {
+      throw new ErrorResponse(404, 'Không tìm thấy thông tin student');
+    }
+
+    // Tạo task với createdBy là chính student đó
+    const task = await TaskModel.create({
+      taskTitle: taskTitle.trim(),
+      description: description?.trim() || '',
+      startDate: start,
+      dueDate: due,
+      priority: priority || 'medium',
+      complexity: complexity || 'medium',
+      status: status || 'Open',
+      createdBy: userId, // Student tự tạo task cho mình
+    });
+
+    // Tự động assign task cho chính student đó
+    await TaskAssignmentModel.create({
+      task: task._id,
+      student: student._id,
+      progressStatus: 'notStarted',
+    });
+
+    return res.status(201).json({
+      message: 'Tạo task thành công',
+      task,
+    });
+  } catch (error) {
+    if (error instanceof ErrorResponse) {
+      throw error;
+    }
+    console.error('Error in createMyTask:', error);
+    throw new ErrorResponse(500, 'Lỗi khi tạo task');
   }
 };
 

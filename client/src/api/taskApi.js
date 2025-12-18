@@ -51,6 +51,10 @@ const taskApi = {
   updateMyTaskProgress(id, data) {
     return axiosInstance.patch(`/tasks/student/my-tasks/${id}/progress`, data);
   },
+
+  createMyTask(data) {
+    return axiosInstance.post("/tasks/student/my-tasks", data);
+  },
 };
 
 export default taskApi;

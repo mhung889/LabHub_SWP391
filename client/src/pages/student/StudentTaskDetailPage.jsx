@@ -1,23 +1,53 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { Container } from "react-bootstrap";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Save, FileText } from "lucide-react";
+import { ArrowLeft, Save } from "lucide-react";
 import taskApi from "@/api/taskApi";
 import { toast } from "sonner";
+import { getAccessToken } from "@/utils/storage";
+import authApi from "@/api/authApi";
+import Sidebar from "@/components/student/sidebar/Sidebar";
 
 export default function StudentTaskDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [user, setUser] = useState(null);
   const [task, setTask] = useState(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
-    progressStatus: "notStarted",
-    progressNote: "",
-    submissionFile: "",
+    status: "Open",
+    note: "",
   });
+
+  useEffect(() => {
+    const token = getAccessToken();
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+
+    const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
+    if (!userInfo._id) {
+      navigate('/login');
+      return;
+    }
+
+    const fetchUserProfile = async () => {
+      try {
+        const response = await authApi.getUserProfile(userInfo._id);
+        setUser(response.data);
+      } catch (error) {
+        console.error('Lỗi khi lấy thông tin user:', error);
+        setUser(userInfo);
+      }
+    };
+
+    fetchUserProfile();
+  }, [navigate]);
 
   useEffect(() => {
     loadTask();
@@ -29,9 +59,8 @@ export default function StudentTaskDetailPage() {
       const response = await taskApi.getMyTaskById(id);
       setTask(response.data);
       setFormData({
-        progressStatus: response.data.progressStatus || "notStarted",
-        progressNote: response.data.progressNote || "",
-        submissionFile: response.data.submissionFile || "",
+        status: response.data.status || "Open",
+        note: response.data.progressNote || "",
       });
     } catch (error) {
       console.error("Error loading task:", error);
@@ -47,8 +76,11 @@ export default function StudentTaskDetailPage() {
     
     try {
       setSaving(true);
-      await taskApi.updateMyTaskProgress(id, formData);
-      toast.success("Cập nhật tiến độ task thành công");
+      await taskApi.updateMyTaskProgress(id, {
+        status: formData.status,
+        note: formData.note,
+      });
+      toast.success("Cập nhật task thành công");
       await loadTask();
     } catch (error) {
       console.error("Error updating task:", error);
@@ -111,34 +143,51 @@ export default function StudentTaskDetailPage() {
     }
   };
 
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-muted-foreground">Đang tải...</p>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <p className="text-muted-foreground">Đang tải...</p>
+      <div className="d-flex" style={{ minHeight: '100vh' }}>
+        <Sidebar user={user} />
+        <Container fluid className="flex-grow-1 p-4 d-flex align-items-center justify-content-center">
+          <p className="text-muted-foreground">Đang tải...</p>
+        </Container>
       </div>
     );
   }
 
   if (!task) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <p className="text-muted-foreground">Không tìm thấy task</p>
+      <div className="d-flex" style={{ minHeight: '100vh' }}>
+        <Sidebar user={user} />
+        <Container fluid className="flex-grow-1 p-4 d-flex align-items-center justify-content-center">
+          <p className="text-muted-foreground">Không tìm thấy task</p>
+        </Container>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex items-center gap-4">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => navigate("/student/tasks")}
-        >
-          <ArrowLeft className="w-4 h-4" />
-        </Button>
-        <h1 className="text-2xl font-bold text-foreground">Chi Tiết Task</h1>
-      </div>
+    <div className="d-flex" style={{ minHeight: '100vh' }}>
+      <Sidebar user={user} />
+      <Container fluid className="flex-grow-1 p-4">
+        <div className="space-y-6">
+          <div className="d-flex align-items-center gap-3 mb-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate("/student/tasks")}
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+            <h1 className="h3 fw-bold text-dark mb-0">Chi Tiết Task</h1>
+          </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Thông tin task */}
@@ -221,95 +270,57 @@ export default function StudentTaskDetailPage() {
           </Card>
         </div>
 
-        {/* Form cập nhật tiến độ */}
+        {/* Form cập nhật trạng thái và note */}
         <div>
           <Card className="p-6">
             <h3 className="text-lg font-bold text-foreground mb-4">
-              Cập Nhật Tiến Độ
+              Cập Nhật Task
             </h3>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
-                  Trạng Thái Tiến Độ
+                  Trạng Thái Task
                 </label>
                 <select
                   className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground"
-                  value={formData.progressStatus}
+                  value={formData.status}
                   onChange={(e) =>
                     setFormData({
                       ...formData,
-                      progressStatus: e.target.value,
+                      status: e.target.value,
                     })
                   }
                 >
-                  <option value="notStarted">Chưa bắt đầu</option>
-                  <option value="inProgress">Đang làm</option>
-                  <option value="completed">Hoàn thành</option>
+                  <option value="Open">Open</option>
+                  <option value="To do">To do</option>
+                  <option value="In progress">In progress</option>
+                  <option value="Reviewing">Reviewing</option>
+                  <option value="Done">Done</option>
+                  <option value="Cancel">Cancel</option>
                 </select>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
-                  Ghi Chú Tiến Độ
+                  Ghi Chú
                 </label>
                 <textarea
                   className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground"
-                  placeholder="Nhập ghi chú về tiến độ..."
-                  value={formData.progressNote}
+                  placeholder="Nhập ghi chú về task..."
+                  value={formData.note}
                   onChange={(e) =>
                     setFormData({
                       ...formData,
-                      progressNote: e.target.value,
+                      note: e.target.value,
                     })
                   }
                   rows={4}
                   maxLength={500}
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  {formData.progressNote.length}/500 ký tự
+                  {formData.note.length}/500 ký tự
                 </p>
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Link File Nộp (URL)
-                </label>
-                <Input
-                  type="url"
-                  placeholder="https://..."
-                  value={formData.submissionFile}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      submissionFile: e.target.value,
-                    })
-                  }
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Nhập link đến file đã nộp (Google Drive, OneDrive, etc.)
-                </p>
-              </div>
-
-              {task.submissionFile && (
-                <div className="p-3 bg-muted rounded-lg">
-                  <label className="text-sm font-medium text-muted-foreground">
-                    File Đã Nộp
-                  </label>
-                  <a
-                    href={task.submissionFile}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary hover:underline block mt-1"
-                  >
-                    {task.submissionFile}
-                  </a>
-                  {task.submittedAt && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Nộp lúc: {formatDate(task.submittedAt)}
-                    </p>
-                  )}
-                </div>
-              )}
 
               <Button
                 type="submit"
@@ -323,6 +334,8 @@ export default function StudentTaskDetailPage() {
           </Card>
         </div>
       </div>
+        </div>
+      </Container>
     </div>
   );
 }
