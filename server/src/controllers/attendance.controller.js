@@ -29,6 +29,18 @@ async function detectFace(imageBase64) {
 // ===============================================
 // Helper: Compare faces
 // ===============================================
+// async function compareFaces(token1, token2) {
+//   const url = "https://api-us.faceplusplus.com/facepp/v3/compare";
+
+//   const formData = new URLSearchParams();
+//   formData.append("api_key", process.env.FACE_API_KEY);
+//   formData.append("api_secret", process.env.FACE_API_SECRET);
+//   formData.append("face_token1", token1);
+//   formData.append("face_token2", token2);
+
+//   const res = await axios.post(url, formData);
+//   return res.data.confidence;
+// }
 async function compareFaces(token1, token2) {
   const url = "https://api-us.faceplusplus.com/facepp/v3/compare";
 
@@ -38,9 +50,17 @@ async function compareFaces(token1, token2) {
   formData.append("face_token1", token1);
   formData.append("face_token2", token2);
 
-  const res = await axios.post(url, formData);
-  return res.data.confidence;
+  try {
+    const res = await axios.post(url, formData);
+    return res.data.confidence;
+  } catch (err) {
+    console.error("❌ FACE++ COMPARE ERROR");
+    console.error("STATUS:", err.response?.status);
+    console.error("DATA:", err.response?.data);
+    throw err;
+  }
 }
+
 
 exports.checkFaceStatus = async (req, res) => {
     try {
@@ -131,6 +151,9 @@ exports.checkin = async (req, res) => {
     const faceTokenCheck = await detectFace(imageBase64);
     if (!faceTokenCheck)
       throw new ErrorResponse(400, "Không nhận diện được khuôn mặt");
+
+    console.log("FACE TOKEN 1 (DB):", user.faceToken);
+console.log("FACE TOKEN 2 (DETECT):", faceTokenCheck);
 
     const confidence = await compareFaces(user.faceToken, faceTokenCheck);
     if (confidence < 75)

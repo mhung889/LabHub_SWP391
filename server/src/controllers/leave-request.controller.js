@@ -88,7 +88,7 @@ exports.createLeaveRequest = async (req, res) => {
     // xin nghỉ trước  x giờ
     // edit here
     const NOTICE_HOURS_BY_TYPE = {
-      personal: 24,
+      personal: 0,
       schoolActivity: 0,
       sick: 0,
     };
