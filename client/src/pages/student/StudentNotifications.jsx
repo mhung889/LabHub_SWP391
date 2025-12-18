@@ -94,9 +94,22 @@ export default function StudentNotifications() {
               <Card key={n._id} className={`p-3 ${n.isRead ? '' : 'border border-primary'}`}>
                 <div className="d-flex justify-content-between align-items-start">
                   <div>
-                    <h5 className="mb-1">{n.title} {!n.isRead && <Badge bg="danger" className="ms-2">Mới</Badge>}</h5>
+                            <h5 className="mb-1">
+                              {n.title && n.title.length > 20 ? n.title.slice(0, 20) + '...' : n.title}
+                              {!n.isRead && <Badge bg="danger" className="ms-2">Mới</Badge>}
+                              {n.isImportant && <Badge bg="warning" text="dark" className="ms-2">Quan trọng</Badge>}
+                              {n.target === 'student' ? (
+                                <Badge bg="secondary" className="ms-2">Riêng</Badge>
+                              ) : (
+                                <Badge bg="info" className="ms-2">Lab</Badge>
+                              )}
+                            </h5>
                     <div className="text-muted small">{new Date(n.createdAt).toLocaleString()}</div>
-                    <p className="mt-2 mb-0 text-truncate">{n.content}</p>
+                    <p className="mt-2 mb-0">
+                      {n.content && n.content.length > 20
+                        ? n.content.slice(0, 20) + '...'
+                        : n.content}
+                    </p>
                   </div>
                   <div className="ms-3 d-flex flex-column gap-2">
                     <Button size="sm" onClick={()=>openNotification(n)}>Xem</Button>
@@ -108,11 +121,13 @@ export default function StudentNotifications() {
           
           <Modal show={showModal} onHide={handleClose} centered>
             <Modal.Header closeButton>
-              <Modal.Title>{selected?.title}</Modal.Title>
+              <Modal.Title>
+                <div style={{ wordBreak: 'break-word', maxWidth: '100%' }}>{selected?.title}</div>
+              </Modal.Title>
             </Modal.Header>
-            <Modal.Body>
-              <div className="text-muted small mb-2">{selected?.sender?.fullName || ''} — {selected ? new Date(selected.createdAt).toLocaleString() : ''}</div>
-              <div style={{ whiteSpace: 'pre-wrap' }}>{selected?.content}</div>
+            <Modal.Body style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+              <div className="text-muted small mb-2" style={{ wordBreak: 'break-word' }}>{selected?.sender?.fullName || ''} — {selected ? new Date(selected.createdAt).toLocaleString() : ''}</div>
+              <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{selected?.content}</div>
             </Modal.Body>
             <Modal.Footer>
               <Button variant="secondary" onClick={handleClose}>Đóng</Button>

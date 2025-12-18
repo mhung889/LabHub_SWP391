@@ -18,10 +18,22 @@ const notificationSchema = new Schema(
       ref: 'User', // mentor
       required: true,
     },
+    // If target is 'lab', `lab` indicates which lab/class receives it.
+    // If target is 'student', `recipientStudent` indicates the single student.
     lab: {
       type: Schema.Types.ObjectId,
       ref: 'Lab',
-      required: true, // gửi cho cả lab
+      required: false,
+    },
+    recipientStudent: {
+      type: Schema.Types.ObjectId,
+      ref: 'Student',
+      required: false,
+    },
+    target: {
+      type: String,
+      enum: ['lab', 'student'],
+      default: 'lab',
     },
     isImportant: {
       type: Boolean,
@@ -48,7 +60,7 @@ const notificationSchema = new Schema(
   { timestamps: true, versionKey: false }
 );
 
-notificationSchema.index({ lab: 1, createdAt: -1 });
+notificationSchema.index({ lab: 1, recipientStudent: 1, createdAt: -1 });
 
 module.exports = mongoose.model(
   'Notification',
