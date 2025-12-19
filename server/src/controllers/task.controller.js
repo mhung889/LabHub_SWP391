@@ -17,7 +17,27 @@ exports.getTasks = async (req, res) => {
     const limitNum = Math.min(100, Math.max(1, parseInt(limit))) || 20;
     const skip = (pageNum - 1) * limitNum;
 
-    const tasks = await TaskModel.find({ createdBy: mentorId })
+    // Tìm lab của mentor
+    const LabModel = require('../models/lab-model');
+    const lab = await LabModel.findOne({ mentor: mentorId, status: 'active' });
+
+    // Lấy danh sách student trong lab
+    const StudentModel = require('../models/student-model');
+    let studentUserIds = [];
+    
+    if (lab) {
+      const students = await StudentModel.find({ lab: lab._id }).select('user').lean();
+      studentUserIds = students.map(s => s.user);
+    }
+
+    // Tìm tất cả task: task của mentor hoặc task của students trong lab
+    const createdByIds = [mentorId, ...studentUserIds];
+    
+    const tasks = await TaskModel.find({ createdBy: { $in: createdByIds } })
+      .populate({
+        path: 'createdBy',
+        select: 'fullName email role',
+      })
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limitNum)
@@ -33,7 +53,7 @@ exports.getTasks = async (req, res) => {
       })
     );
 
-    const total = await TaskModel.countDocuments({ createdBy: mentorId });
+    const total = await TaskModel.countDocuments({ createdBy: { $in: createdByIds } });
 
     return res.status(200).json({
       tasks: tasksWithCounts,
@@ -72,8 +92,22 @@ exports.getTaskById = async (req, res) => {
       throw new ErrorResponse(404, 'Không tìm thấy task');
     }
 
+    // Kiểm tra quyền: mentor có thể xem task của mình hoặc task của student trong lab
     if (task.createdBy.toString() !== mentorId.toString()) {
-      throw new ErrorResponse(403, 'Bạn không có quyền xem task này');
+      // Kiểm tra xem task có phải của student trong lab của mentor không
+      const LabModel = require('../models/lab-model');
+      const lab = await LabModel.findOne({ mentor: mentorId, status: 'active' });
+      
+      if (lab) {
+        const StudentModel = require('../models/student-model');
+        const student = await StudentModel.findOne({ 
+          user: task.createdBy,
+          lab: lab._id 
+        });
+       
+      } else {
+        throw new ErrorResponse(403, 'Bạn không có quyền xem task này');
+      }
     }
 
     const assignments = await TaskAssignmentModel.find({ task: id })
@@ -117,7 +151,7 @@ exports.createTask = async (req, res) => {
       throw new ErrorResponse(403, 'Chỉ mentor mới có quyền tạo task');
     }
 
-    const { taskTitle, description, startDate, dueDate, priority, complexity, status } = req.body;
+    const { taskTitle, description, startDate, dueDate, priority, complexity, status, studentId } = req.body;
 
     if (!taskTitle || !taskTitle.trim()) {
       throw new ErrorResponse(400, 'Tiêu đề task là bắt buộc');
@@ -297,8 +331,25 @@ exports.updateTask = async (req, res) => {
       throw new ErrorResponse(404, 'Không tìm thấy task');
     }
 
+    // Kiểm tra quyền: mentor có thể update task của mình hoặc task của student trong lab
     if (task.createdBy.toString() !== mentorId.toString()) {
-      throw new ErrorResponse(403, 'Bạn không có quyền cập nhật task này');
+      // Kiểm tra xem task có phải của student trong lab của mentor không
+      const LabModel = require('../models/lab-model');
+      const lab = await LabModel.findOne({ mentor: mentorId, status: 'active' });
+      
+      if (lab) {
+        const StudentModel = require('../models/student-model');
+        const student = await StudentModel.findOne({ 
+          user: task.createdBy,
+          lab: lab._id 
+        });
+        
+        if (!student) {
+          throw new ErrorResponse(403, 'Bạn không có quyền cập nhật task này');
+        }
+      } else {
+        throw new ErrorResponse(403, 'Bạn không có quyền cập nhật task này');
+      }
     }
 
     const updateData = {};
@@ -441,8 +492,25 @@ exports.deleteTask = async (req, res) => {
       throw new ErrorResponse(404, 'Không tìm thấy task');
     }
 
+    // Kiểm tra quyền: mentor có thể xóa task của mình hoặc task của student trong lab
     if (task.createdBy.toString() !== mentorId.toString()) {
-      throw new ErrorResponse(403, 'Bạn không có quyền xóa task này');
+      // Kiểm tra xem task có phải của student trong lab của mentor không
+      const LabModel = require('../models/lab-model');
+      const lab = await LabModel.findOne({ mentor: mentorId, status: 'active' });
+      
+      if (lab) {
+        const StudentModel = require('../models/student-model');
+        const student = await StudentModel.findOne({ 
+          user: task.createdBy,
+          lab: lab._id 
+        });
+        
+        if (!student) {
+          throw new ErrorResponse(403, 'Bạn không có quyền xóa task này');
+        }
+      } else {
+        throw new ErrorResponse(403, 'Bạn không có quyền xóa task này');
+      }
     }
 
     await TaskAssignmentModel.deleteMany({ task: id });
@@ -479,9 +547,7 @@ exports.getAssignedStudents = async (req, res) => {
       throw new ErrorResponse(404, 'Không tìm thấy task');
     }
 
-    if (task.createdBy.toString() !== mentorId.toString()) {
-      throw new ErrorResponse(403, 'Bạn không có quyền xem task này');
-    }
+    
 
     const lab = await require('../models/lab-model').findOne({ mentor: mentorId, status: 'active' });
     

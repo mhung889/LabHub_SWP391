@@ -4,8 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Edit2, Trash2, Eye, Users, Calendar, Flag } from "lucide-react";
 import taskApi from "@/api/taskApi";
+import { getUserInfo } from "@/utils/storage";
 
 export default function MentorTasksPage() {
+  const [currentUser, setCurrentUser] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -19,6 +21,11 @@ export default function MentorTasksPage() {
     total: 0,
     totalPages: 0,
   });
+
+  useEffect(() => {
+    const userInfo = getUserInfo();
+    setCurrentUser(userInfo);
+  }, []);
   const [formData, setFormData] = useState({
     taskTitle: "",
     description: "",
@@ -584,6 +591,9 @@ export default function MentorTasksPage() {
                     <th className="text-left px-6 py-4 font-bold text-foreground">
                       Trạng Thái
                     </th>
+                    <th className="text-left px-6 py-4 font-bold text-foreground">
+                      Người Tạo
+                    </th>
                     <th className="text-center px-6 py-4 font-bold text-foreground">
                       Hành Động
                     </th>
@@ -630,6 +640,26 @@ export default function MentorTasksPage() {
                         >
                           {task.status || "Open"}
                         </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        {task.createdBy ? (
+                          <div className="flex flex-col">
+                            <span className="text-foreground font-medium text-sm">
+                              {task.createdBy.fullName || "N/A"}
+                            </span>
+                            <span
+                              className={`text-xs mt-1 ${
+                                task.createdBy.role === "mentor"
+                                  ? "text-blue-600"
+                                  : "text-green-600"
+                              }`}
+                            >
+                              {task.createdBy.role === "mentor" ? "Mentor" : "Student"}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">N/A</span>
+                        )}
                       </td>
                       <td className="px-6 py-4 text-center">
                         <div className="flex items-center justify-center gap-2">
@@ -781,13 +811,36 @@ export default function MentorTasksPage() {
                     </p>
                   </div>
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    Trạng Thái
-                  </label>
-                  <p className="text-foreground">
-                    {selectedTask.status || "Open"}
-                  </p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Trạng Thái
+                    </label>
+                    <p className="text-foreground">
+                      {selectedTask.status || "Open"}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      Người Tạo
+                    </label>
+                    {selectedTask.createdBy ? (
+                      <div>
+                        <p className="text-foreground font-medium">
+                          {typeof selectedTask.createdBy === 'object' 
+                            ? selectedTask.createdBy.fullName 
+                            : 'N/A'}
+                        </p>
+                        {typeof selectedTask.createdBy === 'object' && (
+                          <p className="text-xs text-muted-foreground">
+                            {selectedTask.createdBy.role === 'mentor' ? 'Mentor' : 'Student'}
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-foreground">N/A</p>
+                    )}
+                  </div>
                 </div>
 
                 {selectedTask.assignedStudents &&
