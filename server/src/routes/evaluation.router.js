@@ -1,105 +1,44 @@
 const express = require('express');
-const verifyToken = require('../middlewares/verify-token-middleware');
-const asyncMiddleware = require('../middlewares/async.middleware');
-const roleMiddleware = require('../middlewares/role.middleware');
-const evaluationController = require('../controllers/evaluation.controller');
-
 const router = express.Router();
+const evalController = require('../controllers/evaluation.controller');
+const verifyAccessToken = require('../middlewares/verify-token-middleware');
 
-// UC-50: Configure Evaluation Criteria (OJT)
-router.get(
-  '/criterias',
-  asyncMiddleware(verifyToken),
-  roleMiddleware('admin'),
-  asyncMiddleware(evaluationController.getEvaluationCriterias)
-);
+// Tất cả các route yêu cầu đăng nhập
+router.use(verifyAccessToken);
 
-router.post(
-  '/criterias',
-  asyncMiddleware(verifyToken),
-  roleMiddleware('admin'),
-  asyncMiddleware(evaluationController.createEvaluationCriteria)
-);
+// --- ROUTES CHO MENTOR ---
 
-router.patch(
-  '/criterias/:id',
-  asyncMiddleware(verifyToken),
-  roleMiddleware('admin'),
-  asyncMiddleware(evaluationController.updateEvaluationCriteria)
-);
+/**
+ * @route   GET /api/evaluation/lab/students
+ * @desc    Lấy danh sách sinh viên của Lab mà Mentor đang quản lý
+ */
+router.get('/lab/students', evalController.getStudentsByLab);
 
-router.delete(
-  '/criterias/:id',
-  asyncMiddleware(verifyToken),
-  roleMiddleware('admin'),
-  asyncMiddleware(evaluationController.deleteEvaluationCriteria)
-);
+/**
+ * @route   GET /api/evaluation/preview/:labId/:studentId
+ * @desc    Lấy thống kê chuyên cần và điểm đề xuất cho Modal chấm điểm
+ */
+router.get('/preview/:labId/:studentId', evalController.getEvaluationPreview);
 
-// UC-51: Student Evaluation (Mentor)
-router.get(
-  '/criterias/active',
-  asyncMiddleware(verifyToken),
-  asyncMiddleware(evaluationController.getActiveCriterias)
-);
+/**
+ * @route   POST /api/evaluation
+ * @desc    Lưu bản đánh giá mới từ Mentor
+ */
+router.post('/', evalController.createEvaluation);
 
-router.get(
-  '/students',
-  asyncMiddleware(verifyToken),
-  roleMiddleware('mentor'),
-  asyncMiddleware(evaluationController.getAssignedStudents)
-);
 
-router.post(
-  '/',
-  asyncMiddleware(verifyToken),
-  roleMiddleware('mentor'),
-  asyncMiddleware(evaluationController.createOrUpdateEvaluation)
-);
+// --- ROUTES CHO ADMIN ---
 
-router.get(
-  '/student/:studentId',
-  asyncMiddleware(verifyToken),
-  roleMiddleware('mentor'),
-  asyncMiddleware(evaluationController.getEvaluationByStudent)
-);
+/**
+ * @route   GET /api/evaluation/admin/list
+ * @desc    Admin lấy danh sách tất cả đánh giá (hỗ trợ query ?labId=...)
+ */
+router.get('/admin/list', evalController.getAdminEvaluations);
 
-router.get(
-  '/mentor/list',
-  asyncMiddleware(verifyToken),
-  roleMiddleware('mentor'),
-  asyncMiddleware(evaluationController.getMentorEvaluations)
-);
-
-// UC-52: Submit Evaluation Report (Mentor)
-router.post(
-  '/:evaluationId/submit',
-  asyncMiddleware(verifyToken),
-  roleMiddleware('mentor'),
-  asyncMiddleware(evaluationController.submitEvaluation)
-);
-
-// UC-53: View Evaluation Result (Student)
-router.get(
-  '/student/result',
-  asyncMiddleware(verifyToken),
-  roleMiddleware('student'),
-  asyncMiddleware(evaluationController.getStudentEvaluation)
-);
-
-// UC-54: Evaluation Report List (OJT)
-router.get(
-  '/reports',
-  asyncMiddleware(verifyToken),
-  roleMiddleware('admin'),
-  asyncMiddleware(evaluationController.getEvaluationReports)
-);
-
-router.get(
-  '/reports/:id',
-  asyncMiddleware(verifyToken),
-  roleMiddleware('admin'),
-  asyncMiddleware(evaluationController.getEvaluationReportDetail)
-);
+/**
+ * @route   GET /api/evaluation/admin/lab/:labId
+ * @desc    Admin xem chi tiết toàn bộ đánh giá của một Lab cụ thể
+ */
+router.get('/admin/lab/:labId', evalController.getAllEvaluationsByLab);
 
 module.exports = router;
-

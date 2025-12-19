@@ -22,6 +22,7 @@ import AdminLabsPage from './pages/admin/AdminLab/AdminLabsPage';
 import AdminMentorsPage from './pages/admin/AdminMentorsPage';
 import AdminStudentsPage from './pages/admin/AdminStudentsPage';
 import AdminMajorsPage from './pages/admin/AdminMajorsPage';
+import AdminEvaluationReportListPage from './pages/admin/AdminEvaluationReportListPage';
 
 import MentorLayout from './pages/mentor/MentorLayout';
 import MentorDashboard from './pages/mentor/MentorDashboard';
@@ -31,6 +32,7 @@ import MentorLeaveRequestsPage from './pages/mentor/MentorLeaveRequestsPage';
 import MentorNotificationsPage from './pages/mentor/MentorNotificationsPage';
 import MentorAttendancePage from './pages/mentor/MentorAttendancePage';
 import MentorProfile from './pages/mentor/MentorProfile';
+import MentorEvaluationPage from './pages/mentor/MentorEvaluationPage';
 
 import Forbidden from './pages/Forbidden';
 import { RequireAuth, RequireRole } from '@/routes/guards';
@@ -85,6 +87,7 @@ function App() {
                 <Route path='tasks' element={<MentorTasksPage />} />
                 <Route path='students' element={<MentorStudentsPage />} />
                 <Route path="attendance" element={<MentorAttendancePage />} /> 
+                <Route path="evaluation" element={<MentorEvaluationPage />} />
                 <Route
                   path='leave-requests'
                   element={<MentorLeaveRequestsPage />}
@@ -106,6 +109,7 @@ function App() {
                 <Route path='mentors' element={<AdminMentorsPage />} />
                 <Route path='students' element={<AdminStudentsPage />} />
                 <Route path='majors' element={<AdminMajorsPage />} />
+                <Route path='evaluations' element={<AdminEvaluationReportListPage />} />
               </Route>
             </Route>
           </Route>

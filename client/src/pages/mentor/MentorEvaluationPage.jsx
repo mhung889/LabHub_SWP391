@@ -1,354 +1,237 @@
-import { useState, useEffect } from "react";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Save, Send, Users, CheckCircle } from "lucide-react";
-import evaluationApi from "@/api/evaluationApi";
+import React, { useEffect, useState } from 'react';
+import evaluationApi from '@/api/evaluationApi';
+import { toast } from 'sonner';
+import { Loader2, ClipboardCheck, AlertCircle, UserCheck, Search, Eye } from "lucide-react";
 
 export default function MentorEvaluationPage() {
   const [students, setStudents] = useState([]);
-  const [criterias, setCriterias] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
-  const [evaluation, setEvaluation] = useState(null);
-  const [scores, setScores] = useState({});
-  const [comments, setComments] = useState({});
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [previewData, setPreviewData] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  const [finalScore, setFinalScore] = useState('');
+  const [content, setContent] = useState('');
 
-  useEffect(() => {
-    if (selectedStudent) {
-      loadEvaluation();
-    }
-  }, [selectedStudent]);
+  useEffect(() => { fetchStudents(); }, []);
 
-  const loadData = async () => {
+  const fetchStudents = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const [studentsRes, criteriasRes] = await Promise.all([
-        evaluationApi.getAssignedStudents(),
-        evaluationApi.getActiveCriterias(),
-      ]);
-      setStudents(studentsRes.data.students || []);
-      setCriterias(criteriasRes.data.criterias || []);
-
-      // Initialize scores
-      const initialScores = {};
-      const initialComments = {};
-      (criteriasRes.data.criterias || []).forEach((c) => {
-        initialScores[c._id] = "";
-        initialComments[c._id] = "";
-      });
-      setScores(initialScores);
-      setComments(initialComments);
+      const res = await evaluationApi.getStudentsByLab();
+      setStudents(res.data.data);
     } catch (error) {
-      console.error("Error loading data:", error);
-      alert(error.response?.data?.message || "Lỗi khi tải dữ liệu");
-    } finally {
-      setLoading(false);
-    }
+      toast.error("Không thể tải danh sách sinh viên");
+    } finally { setLoading(false); }
   };
 
-  const loadEvaluation = async () => {
-    if (!selectedStudent) return;
-
-    try {
-      setLoading(true);
-      const response = await evaluationApi.getEvaluationByStudent(selectedStudent._id);
-      const evalData = response.data.evaluation;
-
-      if (evalData) {
-        setEvaluation(evalData);
-        const newScores = {};
-        const newComments = {};
-        evalData.criteriaScores?.forEach((cs) => {
-          newScores[cs.criterionId] = cs.score.toString();
-          newComments[cs.criterionId] = cs.comment || "";
-        });
-        setScores(newScores);
-        setComments(newComments);
-      } else {
-        setEvaluation(null);
-        const initialScores = {};
-        const initialComments = {};
-        criterias.forEach((c) => {
-          initialScores[c._id] = "";
-          initialComments[c._id] = "";
-        });
-        setScores(initialScores);
-        setComments(initialComments);
-      }
-    } catch (error) {
-      console.error("Error loading evaluation:", error);
-      alert(error.response?.data?.message || "Lỗi khi tải đánh giá");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleStudentSelect = (student) => {
+  const handleOpenEvaluation = async (student) => {
     setSelectedStudent(student);
-  };
-
-  const handleScoreChange = (criterionId, value) => {
-    setScores({ ...scores, [criterionId]: value });
-  };
-
-  const handleCommentChange = (criterionId, value) => {
-    setComments({ ...comments, [criterionId]: value });
-  };
-
-  const validateScores = () => {
-    for (const criteria of criterias) {
-      const score = scores[criteria._id];
-      if (!score || score === "" || score === null) {
-        alert(`Vui lòng nhập điểm cho tiêu chí: ${criteria.criterionName}`);
-        return false;
-      }
-      const scoreNum = parseFloat(score);
-      if (isNaN(scoreNum) || scoreNum < 0 || scoreNum > criteria.maxScore) {
-        alert(
-          `Điểm cho tiêu chí ${criteria.criterionName} phải từ 0 đến ${criteria.maxScore}`
-        );
-        return false;
-      }
-    }
-    return true;
-  };
-
-  const calculateTotalScore = () => {
-    let total = 0;
-    criterias.forEach((criteria) => {
-      const score = parseFloat(scores[criteria._id] || 0);
-      const weightedScore = (score / criteria.maxScore) * criteria.weight;
-      total += weightedScore;
-    });
-    return total.toFixed(2);
-  };
-
-  const handleSave = async () => {
-    if (!selectedStudent) {
-      alert("Vui lòng chọn học sinh");
-      return;
-    }
-
-    if (!validateScores()) return;
-
     try {
-      setSaving(true);
-      const criteriaScores = criterias.map((criteria) => ({
-        criterionId: criteria._id,
-        score: parseFloat(scores[criteria._id]),
-        comment: comments[criteria._id] || "",
-      }));
+      const res = await evaluationApi.getEvaluationPreview(student.labId, student._id);
+      const data = res.data.data;
+      setPreviewData(data);
+      
+      // Nếu đã đánh giá, điền dữ liệu cũ vào form. Nếu chưa, dùng điểm đề xuất.
+      if (student.isEvaluated && data.existingEvaluation) {
+        setFinalScore(data.existingEvaluation.finalScore);
+        setContent(data.existingEvaluation.content);
+      } else {
+        setFinalScore(data.suggestedScore);
+        setContent('');
+      }
+      
+      setIsModalOpen(true);
+    } catch (error) { 
+      toast.error("Lỗi khi tải thông tin đánh giá"); 
+    }
+  };
 
-      await evaluationApi.createOrUpdateEvaluation({
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (selectedStudent.isEvaluated) return; // Chặn submit nếu chỉ xem lại
+
+    if (!finalScore || !content.trim()) return toast.warning("Vui lòng điền đủ thông tin");
+    
+    setSubmitting(true);
+    try {
+      await evaluationApi.submitEvaluation({
         studentId: selectedStudent._id,
-        criteriaScores,
+        labId: selectedStudent.labId,
+        finalScore: parseFloat(finalScore),
+        content: content.trim(),
+        stats: previewData.stats,
+        suggestedScore: previewData.suggestedScore
       });
-
-      alert("Lưu đánh giá thành công");
-      loadEvaluation();
-    } catch (error) {
-      console.error("Error saving evaluation:", error);
-      alert(error.response?.data?.message || "Lỗi khi lưu đánh giá");
-    } finally {
-      setSaving(false);
+      toast.success("Đã lưu đánh giá thành công");
+      setIsModalOpen(false);
+      fetchStudents();
+    } catch (error) { 
+      toast.error("Lỗi khi lưu đánh giá"); 
+    } finally { 
+      setSubmitting(false); 
     }
   };
 
-  const handleSubmit = async () => {
-    if (!selectedStudent) {
-      alert("Vui lòng chọn học sinh");
-      return;
-    }
+  const filteredStudents = students.filter(s => 
+    s.user?.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    s.studentCode?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-    if (!evaluation) {
-      alert("Vui lòng lưu đánh giá trước khi nộp");
-      return;
-    }
-
-    if (!confirm("Bạn có chắc muốn nộp báo cáo đánh giá này? Sau khi nộp sẽ không thể chỉnh sửa.")) {
-      return;
-    }
-
-    try {
-      setSaving(true);
-      await evaluationApi.submitEvaluation(evaluation._id);
-      alert("Nộp báo cáo đánh giá thành công");
-      loadEvaluation();
-    } catch (error) {
-      console.error("Error submitting evaluation:", error);
-      alert(error.response?.data?.message || "Lỗi khi nộp báo cáo đánh giá");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  if (loading && students.length === 0) {
-    return <div className="text-center py-8">Đang tải...</div>;
-  }
+  if (loading) return (
+    <div className="d-flex flex-column align-items-center justify-content-center py-5">
+      <Loader2 className="spinner-border text-primary mb-2" style={{ width: '3rem', height: '3rem' }} />
+      <p className="text-muted">Đang tải danh sách sinh viên...</p>
+    </div>
+  );
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Đánh Giá Học Sinh</h1>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Student List */}
-        <Card className="p-4">
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <Users className="w-5 h-5" />
-            Danh Sách Học Sinh
-          </h2>
-          <div className="space-y-2 max-h-[600px] overflow-y-auto">
-            {students.length === 0 ? (
-              <p className="text-muted-foreground text-center py-4">
-                Chưa có học sinh được gán
-              </p>
-            ) : (
-              students.map((student) => (
-                <button
-                  key={student._id}
-                  onClick={() => handleStudentSelect(student)}
-                  className={`w-full text-left p-3 rounded-lg border transition-colors ${
-                    selectedStudent?._id === student._id
-                      ? "bg-primary text-primary-foreground"
-                      : "hover:bg-muted"
-                  }`}
-                >
-                  <p className="font-medium">{student.fullName}</p>
-                  <p className="text-sm opacity-80">{student.studentCode}</p>
-                </button>
-              ))
-            )}
+    <div className="container-fluid py-4">
+      {/* Header & Search */}
+      <div className="card shadow-sm mb-4 border-0">
+        <div className="card-body d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+          <div>
+            <h4 className="card-title mb-1 d-flex align-items-center gap-2 fw-bold text-primary">
+              <UserCheck /> Quản lý Đánh giá Intern
+            </h4>
+            <p className="text-muted mb-0 small">Đánh giá năng lực và chuyên cần của sinh viên thực tập</p>
           </div>
-        </Card>
-
-        {/* Evaluation Form */}
-        <div className="lg:col-span-2">
-          {!selectedStudent ? (
-            <Card className="p-8 text-center text-muted-foreground">
-              Vui lòng chọn học sinh để đánh giá
-            </Card>
-          ) : (
-            <Card className="p-6">
-              <div className="flex justify-between items-center mb-6">
-                <div>
-                  <h2 className="text-xl font-bold">{selectedStudent.fullName}</h2>
-                  <p className="text-sm text-muted-foreground">
-                    {selectedStudent.studentCode}
-                  </p>
-                </div>
-                {evaluation?.status === "submitted" && (
-                  <div className="flex items-center gap-2 text-green-600">
-                    <CheckCircle className="w-5 h-5" />
-                    <span className="font-medium">Đã nộp</span>
-                  </div>
-                )}
-              </div>
-
-              {criterias.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  Chưa có tiêu chí đánh giá nào được cấu hình
-                </div>
-              ) : (
-                <>
-                  <div className="space-y-4 mb-6">
-                    {criterias.map((criteria) => (
-                      <div key={criteria._id} className="border rounded-lg p-4">
-                        <div className="flex justify-between items-start mb-2">
-                          <div>
-                            <h3 className="font-semibold">{criteria.criterionName}</h3>
-                            {criteria.description && (
-                              <p className="text-sm text-muted-foreground">
-                                {criteria.description}
-                              </p>
-                            )}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            Trọng số: {criteria.weight}% | Điểm tối đa: {criteria.maxScore}
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                          <div>
-                            <label className="block text-sm font-medium mb-1">
-                              Điểm <span className="text-red-500">*</span>
-                            </label>
-                            <Input
-                              type="number"
-                              min="0"
-                              max={criteria.maxScore}
-                              step="0.1"
-                              value={scores[criteria._id] || ""}
-                              onChange={(e) =>
-                                handleScoreChange(criteria._id, e.target.value)
-                              }
-                              disabled={evaluation?.status === "submitted"}
-                              placeholder={`0 - ${criteria.maxScore}`}
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium mb-1">
-                              Nhận xét
-                            </label>
-                            <Input
-                              value={comments[criteria._id] || ""}
-                              onChange={(e) =>
-                                handleCommentChange(criteria._id, e.target.value)
-                              }
-                              disabled={evaluation?.status === "submitted"}
-                              placeholder="Nhận xét (tùy chọn)"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="border-t pt-4">
-                    <div className="flex justify-between items-center mb-4">
-                      <span className="text-lg font-semibold">Tổng điểm:</span>
-                      <span className="text-2xl font-bold text-primary">
-                        {calculateTotalScore()} / 100
-                      </span>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={handleSave}
-                        disabled={saving || evaluation?.status === "submitted"}
-                        className="gap-2"
-                      >
-                        <Save className="w-4 h-4" />
-                        {saving ? "Đang lưu..." : "Lưu"}
-                      </Button>
-                      <Button
-                        onClick={handleSubmit}
-                        disabled={
-                          saving ||
-                          !evaluation ||
-                          evaluation.status === "submitted"
-                        }
-                        variant="default"
-                        className="gap-2"
-                      >
-                        <Send className="w-4 h-4" />
-                        Nộp Báo Cáo
-                      </Button>
-                    </div>
-                  </div>
-                </>
-              )}
-            </Card>
-          )}
+          <div className="input-group" style={{ maxWidth: '350px' }}>
+            <span className="input-group-text bg-light border-end-0"><Search size={18} className="text-muted" /></span>
+            <input 
+              type="text" className="form-control bg-light border-start-0 ps-0 shadow-none" 
+              placeholder="Tìm mã SV hoặc tên..." 
+              value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
         </div>
       </div>
+
+      {/* Table */}
+      <div className="card shadow-sm border-0">
+        <div className="table-responsive">
+          <table className="table table-hover align-middle mb-0">
+            <thead className="table-light text-secondary">
+              <tr>
+                <th className="px-4">Mã SV</th>
+                <th>Họ và Tên</th>
+                <th>Trạng thái</th>
+                <th className="text-end px-4">Hành động</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredStudents.map((student) => (
+                <tr key={student._id}>
+                  <td className="px-4 fw-bold text-dark">{student.studentCode}</td>
+                  <td className="fw-medium">{student.user?.fullName}</td>
+                  <td>
+                    {student.isEvaluated ? 
+                      <span className="badge rounded-pill bg-success-subtle text-success border border-success px-3">Hoàn thành</span> : 
+                      <span className="badge rounded-pill bg-warning-subtle text-warning border border-warning px-3">Chờ đánh giá</span>
+                    }
+                  </td>
+                  <td className="text-end px-4">
+                    <button 
+                      onClick={() => handleOpenEvaluation(student)}
+                      className={`btn btn-sm rounded-pill px-3 shadow-sm ${student.isEvaluated ? 'btn-outline-primary' : 'btn-primary'}`}
+                    >
+                      {student.isEvaluated ? <><Eye size={14} className="me-1"/> Xem lại</> : "Đánh giá ngay"}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Modal Evaluation */}
+      {isModalOpen && (
+        <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content shadow-lg border-0">
+              <div className="modal-header border-0 bg-light">
+                <h5 className="modal-title d-flex align-items-center gap-2 fw-bold">
+                  <ClipboardCheck className="text-primary" /> 
+                  {selectedStudent?.isEvaluated ? "Chi tiết đánh giá" : "Đánh giá thực tập sinh"}
+                </h5>
+                <button type="button" className="btn-close shadow-none" onClick={() => setIsModalOpen(false)}></button>
+              </div>
+              
+              <form onSubmit={handleSubmit}>
+                <div className="modal-body p-4">
+                  <div className="mb-4">
+                    <h6 className="fw-bold mb-1">{selectedStudent?.user?.fullName}</h6>
+                    <span className="text-muted small">Mã số: {selectedStudent?.studentCode}</span>
+                  </div>
+
+                  <div className="row g-3 mb-4">
+                    <div className="col-4">
+                      <div className="card bg-danger-subtle border-0 text-center py-2">
+                        <h4 className="mb-0 text-danger fw-bold">{previewData?.stats.absent}</h4>
+                        <small className="text-danger fw-bold" style={{ fontSize: '9px' }}>VẮNG</small>
+                      </div>
+                    </div>
+                    <div className="col-4">
+                      <div className="card bg-warning-subtle border-0 text-center py-2">
+                        <h4 className="mb-0 text-warning fw-bold">{previewData?.stats.partial}</h4>
+                        <small className="text-warning fw-bold" style={{ fontSize: '9px' }}>QUÊN CHECK</small>
+                      </div>
+                    </div>
+                    <div className="col-4">
+                      <div className="card bg-primary-subtle border-0 text-center py-2">
+                        <h4 className="mb-0 text-primary fw-bold">{previewData?.stats.leave}</h4>
+                        <small className="text-primary fw-bold" style={{ fontSize: '9px' }}>CÓ PHÉP</small>
+                      </div>
+                    </div>
+                  </div>
+
+                  {!selectedStudent?.isEvaluated && (
+                    <div className="alert alert-info d-flex align-items-start gap-2 border-0 shadow-sm mb-4">
+                      <AlertCircle size={20} className="mt-1" />
+                      <span className="small"><em>{previewData?.recommendation}</em></span>
+                    </div>
+                  )}
+
+                  <div className="mb-3">
+                    <label className="form-label fw-bold text-secondary small text-uppercase">Điểm đánh giá chốt</label>
+                    <input 
+                      type="number" step="0.1" max="10" min="0" required
+                      className="form-control form-control-lg fw-bold border-2"
+                      value={finalScore} onChange={(e) => setFinalScore(e.target.value)}
+                      disabled={selectedStudent?.isEvaluated}
+                    />
+                  </div>
+
+                  <div className="mb-0">
+                    <label className="form-label fw-bold text-secondary small text-uppercase">Nhận xét chi tiết</label>
+                    <textarea 
+                      required className="form-control border-2 shadow-none" 
+                      rows="3" placeholder="Nhập nhận xét về thái độ và kết quả công việc..."
+                      value={content} onChange={(e) => setContent(e.target.value)}
+                      disabled={selectedStudent?.isEvaluated}
+                    ></textarea>
+                  </div>
+                </div>
+
+                <div className="modal-footer border-0 p-3">
+                  <button type="button" className="btn btn-light px-4 fw-bold" onClick={() => setIsModalOpen(false)}>
+                    {selectedStudent?.isEvaluated ? "Đóng" : "Hủy bỏ"}
+                  </button>
+                  {!selectedStudent?.isEvaluated && (
+                    <button type="submit" disabled={submitting} className="btn btn-primary px-4 fw-bold">
+                      {submitting ? <Loader2 className="spinner-border spinner-border-sm me-2" /> : null}
+                      Lưu kết quả
+                    </button>
+                  )}
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-

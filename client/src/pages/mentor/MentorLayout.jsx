@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { BarChart3, ClipboardList, Users, LogOut, Bell, FileText, CalendarCheck } from 'lucide-react';
+import { BarChart3, ClipboardList, Users, LogOut, Bell, FileText, CalendarCheck, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getAccessToken, clearStorage } from '@/utils/storage';
 import { toast } from 'sonner';
@@ -14,6 +14,7 @@ export default function MentorLayout() {
     { to: '/mentor/tasks', label: 'Quản Lý Task', icon: ClipboardList },
     { to: '/mentor/students', label: 'Sinh Viên Của Tôi', icon: Users },
     { to: '/mentor/attendance', label: 'Lịch Sử Điểm Danh Của Sinh Viên', icon: CalendarCheck },
+    { to: '/mentor/evaluation', label: 'Đánh Giá Sinh Viên', icon: Star },
     { to: '/mentor/leave-requests', label: 'Quản Lý Đơn Nghỉ', icon: FileText },
     { to: '/mentor/notifications', label: 'Thông báo', icon: Bell },
     { to: '/mentor/profile', label: 'Hồ sơ', icon: Users },
@@ -24,6 +25,7 @@ export default function MentorLayout() {
     '/mentor/tasks': 'Quản Lý Task',
     '/mentor/students': 'Sinh Viên Của Tôi',
     '/mentor/attendance': 'Lịch Sử Điểm Danh Của Sinh Viên',
+    '/mentor/evaluation': 'Đánh Giá Sinh Viên',
     '/mentor/leave-requests': 'Quản Lý Đơn Nghỉ',
     '/mentor/notifications': 'Thông báo',
     '/mentor/profile': 'Hồ sơ Mentor',

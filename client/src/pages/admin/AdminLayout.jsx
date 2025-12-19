@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Users, Zap, BarChart3, GraduationCap, BookOpen, LogOut } from 'lucide-react';
+import { Users, Zap, BarChart3, GraduationCap, BookOpen, LogOut, ClipboardCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { clearStorage } from '@/utils/storage';
 import { toast } from 'sonner';
@@ -15,6 +15,7 @@ export default function AdminLayout() {
     { to: '/admin/mentors', label: 'Quản Lý Mentor', icon: Users },
     { to: '/admin/students', label: 'Quản Lý Sinh Viên', icon: GraduationCap },
     { to: '/admin/majors', label: 'Quản Lý Chuyên Ngành', icon: BookOpen },
+    { to: '/admin/evaluations', label: 'Báo Cáo Đánh Giá', icon: ClipboardCheck },
   ];
 
   const titleMap = {
@@ -23,6 +24,7 @@ export default function AdminLayout() {
     '/admin/mentors': 'Mentor Management',
     '/admin/students': 'Student Management',
     '/admin/majors': 'Major Management',
+    '/admin/evaluations': 'Evaluation Reports',
   };
 
   // Tìm tab hiện tại để hiển thị title đúng

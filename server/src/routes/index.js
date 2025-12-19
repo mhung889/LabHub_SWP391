@@ -17,7 +17,7 @@ module.exports = (app) => {
   app.use('/api/students', studentRouter);
   app.use('/api/majors', majorRouter);
   app.use('/api/tasks', taskRouter);
-  app.use('/api/evaluations', evaluationRouter);
+  app.use('/api/evaluation', evaluationRouter);
   app.use('/api/leave-requests', leaveRequestRouter); 
   app.use('/api/attendance', attendanceRouter);
   app.use('/api/notifications', notificationRouter);

@@ -1,76 +1,53 @@
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
-const criterionScoreSchema = new Schema(
-  {
-    criterionId: {
-      type: Schema.Types.ObjectId,
-      ref: 'EvaluationCriteria',
-      required: true,
-    },
-    criterionName: {
-      type: String,
-      required: true,
-    },
-    score: {
-      type: Number,
-      required: true,
-      min: 0,
-    },
-    maxScore: {
-      type: Number,
-      required: true,
-    },
-    weight: {
-      type: Number,
-      required: true,
-    },
-    comment: {
-      type: String,
-      trim: true,
-    },
-  },
-  { _id: false }
-);
-
 const evaluationSchema = new Schema(
   {
-    student: {
-      type: Schema.Types.ObjectId,
-      ref: 'Student',
-      required: true,
-    },
     mentor: {
       type: Schema.Types.ObjectId,
-      ref: 'User',
+      ref: 'User', // Người thực hiện đánh giá
       required: true,
     },
-    criteriaScores: [criterionScoreSchema],
-    totalScore: {
-      type: Number,
-      default: 0,
-    },
-    status: {
-      type: String,
-      enum: ['draft', 'completed', 'submitted'],
-      default: 'draft',
-    },
-    submittedDate: {
-      type: Date,
-    },
-    approvedBy: {
+    student: {
       type: Schema.Types.ObjectId,
-      ref: 'User',
+      ref: 'Student', // Sinh viên được đánh giá
+      required: true,
     },
-    approvedDate: {
+    lab: {
+      type: Schema.Types.ObjectId,
+      ref: 'Lab', // Phòng lab diễn ra đánh giá
+      required: true,
+    },
+    // Lưu lại trạng thái điểm danh tại thời điểm đánh giá
+    attendanceSnapshot: {
+      absentCount: { type: Number, default: 0 },
+      leaveCount: { type: Number, default: 0 },
+      partialCount: { type: Number, default: 0 },
+    },
+    suggestedScore: {
+      type: Number, // Điểm do hệ thống tự tính (max 10)
+    },
+    finalScore: {
+      type: Number, // Điểm do Mentor quyết định nhập vào
+      required: true,
+      min: 0,
+      max: 10,
+    },
+    content: {
+      type: String, // Nhận xét bằng chữ
+      required: true,
+      trim: true,
+    },
+    evaluationDate: {
       type: Date,
+      default: Date.now,
     },
   },
   { timestamps: true, versionKey: false }
 );
 
-evaluationSchema.index({ student: 1, mentor: 1, createdAt: -1 });
-evaluationSchema.index({ status: 1, submittedDate: -1 });
+// Đảm bảo 1 kỳ đánh giá (ví dụ theo tháng hoặc theo kỳ) 
+// Nếu bạn muốn 1 lab - 1 student chỉ có 1 bản đánh giá duy nhất:
+evaluationSchema.index({ lab: 1, student: 1 }, { unique: true });
 
 module.exports = mongoose.model('Evaluation', evaluationSchema, 'Evaluations');
-
