@@ -875,7 +875,7 @@ export default function MentorTasksPage() {
                                   ? "Hoàn thành"
                                   : student.progress === "inProgress"
                                   ? "Đang làm"
-                                  : "Chưa bắt đầu"}
+                                  : ""}
                               </span>
                               {student.submissionStatus === "submitted" && (
                                 <span className="text-xs px-2 py-1 rounded bg-blue-500/10 text-blue-600">

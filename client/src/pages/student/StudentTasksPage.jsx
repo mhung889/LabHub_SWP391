@@ -182,7 +182,7 @@ export default function StudentTasksPage() {
       case "inProgress":
         return "Đang làm";
       case "notStarted":
-        return "Chưa bắt đầu";
+        return "";
       default:
         return progress;
     }
