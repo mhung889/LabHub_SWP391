@@ -14,6 +14,7 @@ import StudentTaskDetailPage from './pages/student/StudentTaskDetailPage';
 import LeaveRequestStudent from './pages/student/leave-request/LeaveRequestStudent';
 import FaceRegisterPage from './pages/student/FaceRegisterPage';
 import FaceAttendancePage from './pages/student/FaceAttendancePage';
+import AttendanceHistoryPage from './pages/student/AttendanceHistoryPage';
 
 import AdminLayout from './pages/admin/AdminLayout';
 import AdminOverviewPage from './pages/admin/AdminOverviewPage';
@@ -62,6 +63,10 @@ function App() {
                 element={<StudentTaskDetailPage />}
               />
               <Route path='/student/leave' element={<LeaveRequestStudent />} />
+              <Route 
+                path='/student/attendance-history' 
+                element={<AttendanceHistoryPage />} 
+              />
               <Route
                 path='/student/register-face'
                 element={<FaceRegisterPage />}

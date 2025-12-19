@@ -3,6 +3,7 @@ const User = require('../models/user-model');
 const bcrypt = require('bcrypt');
 const sendMail = require('../helpers/send.mail');
 const Lab = require('../models/lab-model');
+const LabAttendance = require('../models/lab-attendance-model');
 
 // =====================================
 // Random Password (6 ký tự)
@@ -330,25 +331,33 @@ exports.getMyStudents = async (req, res) => {
   }
 };
 
-// // =====================================
-// // CHECK IF STUDENT HAS FACE TOKEN
-// // =====================================
-// exports.checkFaceRegistered = async (req, res) => {
-//   try {
-//     const student = await Student.findById(req.params.id).populate("user");
+exports.getAttendanceHistory = async (req, res) => {
+  try {
+    console.log(">>> [DEBUG] Kiểm tra user trong request:", req.user); // Xem req.user có dữ liệu không
 
-//     if (!student) {
-//       return res.status(404).json({ message: "Student not found" });
-//     }
+    const student = await Student.findOne({ user: req.user._id });
+    console.log(">>> [DEBUG] Kết quả tìm Student:", student ? student._id : "Không tìm thấy");
 
-//     const hasFace = !!student.user.faceToken;
+    if (!student) {
+      return res.status(404).json({ message: "Không tìm thấy sinh viên" });
+    }
 
-//     return res.json({
-//       registered: hasFace,
-//       faceToken: student.user.faceToken || null,
-//     });
+    const history = await LabAttendance.find({ student: student._id })
+      .populate('lab', 'name code')
+      .sort({ date: -1 });
 
-//   } catch (err) {
-//     return res.status(500).json({ message: err.message });
-//   }
-// };
+    console.log(">>> [DEBUG] Lấy dữ liệu thành công:", history);
+
+    if (!history || history.length === 0) {
+      return res.status(404).json({ message: "Không có lịch sử điểm danh" });
+    }
+
+    return res.json(history);
+
+  } catch (err) {
+    console.error("Lỗi trong getAttendanceHistory:", err);
+    return res.status(500).json({ message: "Lỗi server", error: err.message });
+  }
+};
+
+

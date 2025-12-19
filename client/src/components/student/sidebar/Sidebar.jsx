@@ -40,11 +40,11 @@ const Sidebar = ({ user, items }) => {
       icon: 'photo_camera',
       label: 'Điểm danh ',
     },
-    // {
-    //   to: "/student/history",
-    //   icon: "history",
-    //   label: "Lịch sử điểm danh",
-    // },
+    {
+      to: '/student/attendance-history',
+      icon: 'history', 
+      label: 'Lịch sử điểm danh',
+    },
     {
       to: '/student/tasks',
       icon: 'task',
