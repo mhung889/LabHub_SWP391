@@ -36,16 +36,10 @@ const labAttendanceSchema = new Schema(
       type: Number,
       default: 0,
     },
-    Status: {
+    status: {
       type: String,
-      enum: [
-        'inProgress',  // đang trong giờ lab
-        'completed',   // checkin + checkout
-        'late',        // chỉ checkout (đến trễ)
-        'incomplete',  // checkin nhưng không checkout
-        'absent',      // không tham gia
-      ],
-      default: 'inProgress',
+      enum: ["pending", "completed", "partial", "absent", "leave"],
+      required: true,
     },
   },
   { timestamps: true, versionKey: false }

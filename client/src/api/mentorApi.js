@@ -41,6 +41,26 @@ const mentorApi = {
   searchMentors(keyword) {
     return axiosInstance.get(`/mentors/search?keyword=${encodeURIComponent(keyword)}`);
   },
+
+  // Mentor (logged-in) attendance
+  getAttendance(params = {}) {
+    return axiosInstance.get("/mentors/attendance", {
+      params,
+    });
+  },
+  updateCheckInTime(attendanceId, data) {
+    return axiosInstance.patch(
+      `/mentors/attendance/${attendanceId}/checkin-time`,
+      data
+    );
+  },
+  
+  updateCheckOutTime(attendanceId, data) {
+    return axiosInstance.patch(
+      `/mentors/attendance/${attendanceId}/checkout-time`,
+      data
+    );
+  },  
 };
 
 export default mentorApi;

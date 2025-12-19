@@ -26,6 +26,7 @@ import MentorTasksPage from './pages/mentor/MentorTasksPage';
 import MentorStudentsPage from './pages/mentor/MentorStudentsPage';
 import MentorLeaveRequestsPage from './pages/mentor/MentorLeaveRequestsPage';
 import MentorNotificationsPage from './pages/mentor/MentorNotificationsPage';
+import MentorAttendancePage from './pages/mentor/MentorAttendancePage';
 
 import Forbidden from './pages/Forbidden';
 import { RequireAuth, RequireRole } from '@/routes/guards';
@@ -70,6 +71,7 @@ function App() {
                 <Route path='dashboard' element={<MentorDashboard />} />
                 <Route path='tasks' element={<MentorTasksPage />} />
                 <Route path='students' element={<MentorStudentsPage />} />
+                <Route path="attendance" element={<MentorAttendancePage />} /> 
                 <Route
                   path='leave-requests'
                   element={<MentorLeaveRequestsPage />}

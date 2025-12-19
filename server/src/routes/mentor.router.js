@@ -10,6 +10,9 @@ const {
   createMentor,
   updateMentor,
   searchMentors,
+  getMentorAttendance,
+  updateCheckInTime,
+  updateCheckOutTime,
 } = require('../controllers/mentor.controller');
 
 const router = express.Router();
@@ -19,6 +22,27 @@ router.get('/test', (req, res) => {
 });
 
 router.get('/search', asyncMiddleware(searchMentors));
+
+router.get(
+  '/attendance',
+  asyncMiddleware(verifyToken),
+  roleMiddleware('mentor'),
+  asyncMiddleware(getMentorAttendance)
+);
+
+router.patch(
+  '/attendance/:id/checkin-time',
+  verifyToken,
+  roleMiddleware('mentor'),
+  asyncMiddleware(updateCheckInTime)
+);
+
+router.patch(
+  '/attendance/:id/checkout-time',
+  verifyToken,
+  roleMiddleware('mentor'),
+  asyncMiddleware(updateCheckOutTime)
+);
 
 router.get('/', asyncMiddleware(getMentors));
 

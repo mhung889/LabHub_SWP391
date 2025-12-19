@@ -3,7 +3,22 @@ const bcryptjs = require('bcryptjs');
 const cloudinary = require('../config/cloudinary');
 const UserModel = require('../models/user-model');
 const LabModel = require('../models/lab-model');
+const StudentModel = require('../models/student-model');
+const LabAttendanceModel = require('../models/lab-attendance-model');
 const ErrorResponse = require('../helpers/ErrorResponse');
+
+const isToday = (date) => {
+  if (!date) return false;
+
+  const d = new Date(date);
+  const today = new Date();
+
+  return (
+    d.getFullYear() === today.getFullYear() &&
+    d.getMonth() === today.getMonth() &&
+    d.getDate() === today.getDate()
+  );
+};
 
 module.exports = {
   getMentors: async (req, res) => {
@@ -545,5 +560,167 @@ module.exports = {
       throw new ErrorResponse(500, 'Lỗi khi tìm kiếm mentor');
     }
   },
+  getMentorAttendance: async (req, res) => {
+    try {
+      const mentorId = req.user.id;
+      const { date, from, to, status } = req.query;
+
+      const lab = await LabModel.findOne({
+        mentor: mentorId,
+        status: 'active',
+      }).lean();
+
+      if (!lab) {
+        throw new ErrorResponse(404, 'Bạn chưa được phân công phòng lab nào');
+      }
+
+      const students = await StudentModel.find({ lab: lab._id })
+        .populate('user', 'fullName email')
+        .select('_id studentCode user')
+        .lean();
+
+      const studentIds = students.map(s => s._id);
+
+      const filter = {
+        lab: lab._id,
+        student: { $in: studentIds },
+      };
+
+      if (date) filter.date = new Date(date);
+      if (from && to) {
+        filter.date = {
+          $gte: new Date(from),
+          $lte: new Date(to),
+        };
+      }
+      if (status) filter.status = status;
+
+      const attendances = await LabAttendanceModel.find(filter)
+        .populate({
+          path: 'student',
+          select: 'studentCode user',
+          populate: {
+            path: 'user',
+            select: 'fullName',
+          },
+        })
+        .sort({ date: -1 })
+        .lean();
+
+      return res.status(200).json({
+        lab: {
+          id: lab._id,
+          name: lab.name,
+          code: lab.code,
+          time: `${lab.startTime} - ${lab.endTime}`,
+          attendanceRule: lab.attendanceRule,
+        },
+        totalStudents: students.length,
+        records: attendances,
+      });
+    } catch (error) {
+      console.error('Error in getMentorAttendance:', error);
+      if (error instanceof ErrorResponse) throw error;
+      throw new ErrorResponse(500, 'Lỗi khi lấy dữ liệu điểm danh');
+    }
+  },
+  // Mentor hỗ trợ chỉnh check-in time
+updateCheckInTime: async (req, res) => {
+  try {
+    const mentorId = req.user.id;
+    const { id } = req.params;
+    const { checkInTime } = req.body;
+
+    if (!checkInTime) {
+      throw new ErrorResponse(400, "checkInTime là bắt buộc");
+    }
+
+    const attendance = await LabAttendanceModel
+      .findById(id)
+      .populate("lab");
+
+    if (!attendance) {
+      throw new ErrorResponse(404, "Không tìm thấy attendance");
+    }
+
+    // ✔ đúng mentor của lab
+    if (!attendance.lab || String(attendance.lab.mentor) !== mentorId) {
+      throw new ErrorResponse(403, "Không có quyền chỉnh attendance này");
+    }
+
+    // ❌ chỉ cho sửa trong ngày
+    if (!isToday(attendance.date)) {
+      throw new ErrorResponse(400, "Chỉ được hỗ trợ check-in trong ngày");
+    }
+
+    // ❌ không cho ghi đè
+    if (attendance.checkInTime) {
+      throw new ErrorResponse(400, "Sinh viên đã check-in");
+    }
+
+    attendance.checkInTime = new Date(checkInTime);
+    await attendance.save();
+
+    return res.status(200).json({
+      message: "Đã hỗ trợ check-in thành công",
+    });
+  } catch (error) {
+    console.error("Error in updateCheckInTime:", error);
+    if (error instanceof ErrorResponse) throw error;
+    throw new ErrorResponse(500, "Lỗi khi cập nhật check-in time");
+  }
+},
+
+  // Mentor hỗ trợ chỉnh check-out time
+updateCheckOutTime: async (req, res) => {
+  try {
+    const mentorId = req.user.id;
+    const { id } = req.params;
+    const { checkOutTime } = req.body;
+
+    if (!checkOutTime) {
+      throw new ErrorResponse(400, "checkOutTime là bắt buộc");
+    }
+
+    const attendance = await LabAttendanceModel
+      .findById(id)
+      .populate("lab");
+
+    if (!attendance) {
+      throw new ErrorResponse(404, "Không tìm thấy attendance");
+    }
+
+    // ✔ đúng mentor của lab
+    if (!attendance.lab || String(attendance.lab.mentor) !== mentorId) {
+      throw new ErrorResponse(403, "Không có quyền chỉnh attendance này");
+    }
+
+    // ❌ chỉ cho sửa trong ngày
+    if (!isToday(attendance.date)) {
+      throw new ErrorResponse(400, "Chỉ được hỗ trợ check-out trong ngày");
+    }
+
+    // ❌ chưa check-in thì không cho check-out
+    if (!attendance.checkInTime) {
+      throw new ErrorResponse(400, "Sinh viên chưa check-in");
+    }
+
+    // ❌ không cho ghi đè
+    if (attendance.checkOutTime) {
+      throw new ErrorResponse(400, "Sinh viên đã check-out");
+    }
+
+    attendance.checkOutTime = new Date(checkOutTime);
+    await attendance.save();
+
+    return res.status(200).json({
+      message: "Đã hỗ trợ check-out thành công",
+    });
+  } catch (error) {
+    console.error("Error in updateCheckOutTime:", error);
+    if (error instanceof ErrorResponse) throw error;
+    throw new ErrorResponse(500, "Lỗi khi cập nhật check-out time");
+  }
+},
 };
 
