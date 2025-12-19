@@ -9,6 +9,8 @@ import ResetPassword from './pages/student/ResetPassword';
 import StudentDashboard from './pages/student/StudentDashboard';
 import StudentProfile from './pages/student/StudentProfile';
 import StudentNotifications from './pages/student/StudentNotifications';
+import StudentTasksPage from './pages/student/StudentTasksPage';
+import StudentTaskDetailPage from './pages/student/StudentTaskDetailPage';
 import LeaveRequestStudent from './pages/student/leave-request/LeaveRequestStudent';
 import FaceRegisterPage from './pages/student/FaceRegisterPage';
 import FaceAttendancePage from './pages/student/FaceAttendancePage';
@@ -27,6 +29,7 @@ import MentorStudentsPage from './pages/mentor/MentorStudentsPage';
 import MentorLeaveRequestsPage from './pages/mentor/MentorLeaveRequestsPage';
 import MentorNotificationsPage from './pages/mentor/MentorNotificationsPage';
 import MentorAttendancePage from './pages/mentor/MentorAttendancePage';
+import MentorProfile from './pages/mentor/MentorProfile';
 
 import Forbidden from './pages/Forbidden';
 import { RequireAuth, RequireRole } from '@/routes/guards';
@@ -52,6 +55,11 @@ function App() {
               <Route
                 path='/student/notifications'
                 element={<StudentNotifications />}
+              />
+              <Route path='/student/tasks' element={<StudentTasksPage />} />
+              <Route
+                path='/student/tasks/:id'
+                element={<StudentTaskDetailPage />}
               />
               <Route path='/student/leave' element={<LeaveRequestStudent />} />
               <Route
@@ -80,6 +88,7 @@ function App() {
                   path='notifications'
                   element={<MentorNotificationsPage />}
                 />
+                <Route path='profile' element={<MentorProfile />} />
               </Route>
             </Route>
 

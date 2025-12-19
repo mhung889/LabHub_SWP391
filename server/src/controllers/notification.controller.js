@@ -4,19 +4,34 @@ const ErrorResponse = require('../helpers/ErrorResponse');
 
 // Mentor: create notification for a lab
 exports.create = async (req, res) => {
-  const { title, content, lab, isImportant } = req.body;
+  const { title, content, lab, recipientStudent, isImportant } = req.body;
 
-  if (!title || !content || !lab) {
+  if (!title || !content) {
     throw new ErrorResponse(400, 'Thiếu trường bắt buộc');
   }
 
-  const notification = await Notification.create({
+  let payload = {
     title,
     content,
-    lab,
     sender: req.user._id,
     isImportant: !!isImportant,
-  });
+  };
+
+  // If recipientStudent provided, create targeted notification for that student
+  if (recipientStudent) {
+    const student = await Student.findById(recipientStudent);
+    if (!student) throw new ErrorResponse(404, 'Student not found');
+    payload.recipientStudent = student._id;
+    payload.lab = student.lab; // keep lab reference for convenience
+    payload.target = 'student';
+  } else {
+    // otherwise must provide lab for lab-wide notification
+    if (!lab) throw new ErrorResponse(400, 'Thiếu trường lab khi gửi cho cả lớp');
+    payload.lab = lab;
+    payload.target = 'lab';
+  }
+
+  const notification = await Notification.create(payload);
 
   res.status(201).json({ success: true, notification });
 };
@@ -46,14 +61,29 @@ exports.listForStudent = async (req, res) => {
   if (!student) throw new ErrorResponse(404, 'Student not found');
 
   const { search = '' } = req.query;
-  const q = { lab: student.lab, status: 'active' };
-  if (search) q.$or = [
-    { title: new RegExp(search, 'i') },
-    { content: new RegExp(search, 'i') },
+  // Build query: include lab-wide notifications (target='lab' AND lab matches)
+  // OR student-targeted notifications (target='student' AND recipientStudent matches)
+  const baseOr = [
+    { target: 'lab', lab: student.lab },
+    { target: 'student', recipientStudent: student._id },
   ];
 
+  let q;
+  if (search) {
+    const regex = new RegExp(search, 'i');
+    q = {
+      status: 'active',
+      $and: [
+        { $or: [{ title: regex }, { content: regex }] },
+        { $or: baseOr },
+      ],
+    };
+  } else {
+    q = { status: 'active', $or: baseOr };
+  }
+
   const notifications = await Notification.find(q)
-    .sort({ createdAt: -1 })
+    .sort({ isImportant: -1, createdAt: -1 })
     .limit(200)
     .populate('sender', 'fullName email')
     .lean();

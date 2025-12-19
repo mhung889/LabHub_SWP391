@@ -55,5 +55,34 @@ router.delete(
   asyncMiddleware(taskController.deleteTask)
 );
 
+// Student routes
+router.get(
+  '/student/my-tasks',
+  asyncMiddleware(verifyToken),
+  roleMiddleware('student'),
+  asyncMiddleware(taskController.getMyTasks)
+);
+
+router.get(
+  '/student/my-tasks/:id',
+  asyncMiddleware(verifyToken),
+  roleMiddleware('student'),
+  asyncMiddleware(taskController.getMyTaskById)
+);
+
+router.patch(
+  '/student/my-tasks/:id/progress',
+  asyncMiddleware(verifyToken),
+  roleMiddleware('student'),
+  asyncMiddleware(taskController.updateMyTaskProgress)
+);
+
+router.post(
+  '/student/my-tasks',
+  asyncMiddleware(verifyToken),
+  roleMiddleware('student'),
+  asyncMiddleware(taskController.createMyTask)
+);
+
 module.exports = router;
 

@@ -43,6 +43,7 @@ const StudentProfile = () => {
     dateOfBirth: "",
     gender: "",
   });
+  const [formErrors, setFormErrors] = useState({});
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -130,18 +131,41 @@ const StudentProfile = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setFormErrors({});
     setSaving(true);
 
     try {
       const updateData = {};
 
+      // Validate phone number (optional but must be 10-11 digits if filled)
+      if (formData.phoneNumber && formData.phoneNumber.trim()) {
+        const phoneRegex = /^[0-9]{10}$/;
+        const cleanPhone = formData.phoneNumber.trim().replace(/[\s-]/g, "");
+        if (!phoneRegex.test(cleanPhone)) {
+          setFormErrors((prev) => ({
+            ...prev,
+            phoneNumber: "Số điện thoại không hợp lệ",
+          }));
+          setSaving(false);
+          return;
+        }
+        if (cleanPhone.length > 20) {
+          setFormErrors((prev) => ({
+            ...prev,
+            phoneNumber: "Số điện thoại không được vượt quá 20 ký tự",
+          }));
+          setSaving(false);
+          return;
+        }
+        updateData.phoneNumber = cleanPhone;
+      } else if (formData.phoneNumber === "") {
+        updateData.phoneNumber = null;
+      }
+
       if (formData.fullName && formData.fullName.trim()) {
         updateData.fullName = formData.fullName.trim();
       }
 
-      if (formData.phoneNumber !== undefined) {
-        updateData.phoneNumber = formData.phoneNumber.trim();
-      }
       if (formData.address !== undefined) {
         updateData.address = formData.address.trim() || null;
       }
@@ -519,9 +543,16 @@ const StudentProfile = () => {
                                   name="phoneNumber"
                                   value={formData.phoneNumber}
                                   onChange={handleInputChange}
-                                  placeholder="Nhập số điện thoại"
-                                  className="custom-input"
+                                  placeholder="Nhập số điện thoại (10-11 chữ số)"
+                                  className={`custom-input ${
+                                    formErrors.phoneNumber ? "is-invalid" : ""
+                                  }`}
                                 />
+                                {formErrors.phoneNumber && (
+                                  <div className="invalid-feedback d-block">
+                                    {formErrors.phoneNumber}
+                                  </div>
+                                )}
                               </Form.Group>
                             </Col>
                             <Col md={6}>

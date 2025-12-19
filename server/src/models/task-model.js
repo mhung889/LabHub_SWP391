@@ -26,10 +26,15 @@ const taskSchema = new Schema(
       enum: ['low', 'medium', 'high'],
       default: 'medium',
     },
+    complexity: {
+      type: String,
+      enum: ['easy', 'medium', 'complex', 'veryComplex'],
+      default: 'medium',
+    },
     status: {
       type: String,
-      enum: ['active', 'closed'],
-      default: 'active',
+      enum: ['Open', 'To do', 'In progress', 'Reviewing', 'Done', 'Cancel'],
+      default: 'Open',
     },
     createdBy: {
       type: Schema.Types.ObjectId,

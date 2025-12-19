@@ -16,6 +16,7 @@ export default function MentorLayout() {
     { to: '/mentor/attendance', label: 'Lịch Sử Điểm Danh Của Sinh Viên', icon: CalendarCheck },
     { to: '/mentor/leave-requests', label: 'Quản Lý Đơn Nghỉ', icon: FileText },
     { to: '/mentor/notifications', label: 'Thông báo', icon: Bell },
+    { to: '/mentor/profile', label: 'Hồ sơ', icon: Users },
   ];
 
   const titleMap = {
@@ -25,6 +26,7 @@ export default function MentorLayout() {
     '/mentor/attendance': 'Lịch Sử Điểm Danh Của Sinh Viên',
     '/mentor/leave-requests': 'Quản Lý Đơn Nghỉ',
     '/mentor/notifications': 'Thông báo',
+    '/mentor/profile': 'Hồ sơ Mentor',
   };
 
   const currentTab = tabs.find((t) => location.pathname.startsWith(t.to));
