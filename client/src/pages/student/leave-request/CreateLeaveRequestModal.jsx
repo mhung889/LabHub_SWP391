@@ -48,18 +48,18 @@ export default function CreateLeaveRequestModal({
     e.preventDefault();
     setFormErr('');
 
-    if (!formData.leaveType) {
-      setFormErr('Vui lòng chọn loại nghỉ.');
-      return;
-    }
-    if (!formData.startDate) {
-      setFormErr('Vui lòng chọn ngày bắt đầu.');
-      return;
-    }
-    if (!formData.reason.trim()) {
-      setFormErr('Vui lòng nhập lý do.');
-      return;
-    }
+    // if (!formData.leaveType) {
+    //   setFormErr('Vui lòng chọn loại nghỉ.');
+    //   return;
+    // }
+    // if (!formData.startDate) {
+    //   setFormErr('Vui lòng chọn ngày bắt đầu.');
+    //   return;
+    // }
+    // if (!formData.reason.trim()) {
+    //   setFormErr('Vui lòng nhập lý do.');
+    //   return;
+    // }
 
     const payload = {
       lab: labId,
@@ -94,7 +94,7 @@ export default function CreateLeaveRequestModal({
             </Alert>
           )} */}
 
-          <Form.Group className='mb-3'>
+          {/* <Form.Group className='mb-3'>
             <Form.Label className='fw-medium'>Loại đơn</Form.Label>
             <Form.Select
               name='leaveType'
@@ -107,7 +107,7 @@ export default function CreateLeaveRequestModal({
               <option value='sick'>Nghỉ ốm</option>
               <option value='schoolActivity'>Hoạt động trường</option>
             </Form.Select>
-          </Form.Group>
+          </Form.Group> */}
 
           <Form.Label className='fw-medium mb-2'>Khoảng thời gian</Form.Label>
           <Row className='g-2 mb-3'>

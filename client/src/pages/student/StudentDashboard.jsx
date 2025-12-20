@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getAccessToken, clearStorage } from '../../utils/storage';
 import authApi from '../../api/authApi';
-import attendanceApi from '../../api/attendanceApi'; // 🟢 Thêm API check-face
+import attendanceApi from '../../api/attendanceApi'; 
 import '../../components/css/StudentDashboard.css';
 import Sidebar from '../../components/student/sidebar/Sidebar';
 import leaveRequestApi from '@/api/leaveRequestApi';
@@ -14,7 +14,7 @@ const StudentDashboard = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const MAX_LEAVE_DAYS = 4;
+  const MAX_LEAVE_DAYS = 3;
 
   const [leaveStats, setLeaveStats] = useState({
     usedDays: 0,
@@ -244,7 +244,7 @@ const StudentDashboard = () => {
                   </div>
 
                   <ProgressBar
-                    now={leaveStats.percentRemaining}
+                    now={100-leaveStats.percentRemaining}
                     variant='info'
                     style={{ height: '8px', backgroundColor: '#e2e8f0' }}
                     className='rounded-pill'

@@ -234,7 +234,7 @@ export default function MentorLeaveRequestsPage() {
             </select>
           </div>
 
-          <div>
+          {/* <div>
             <label className='text-sm font-semibold text-foreground'>
               Loại nghỉ
             </label>
@@ -248,7 +248,7 @@ export default function MentorLeaveRequestsPage() {
               <option value='sick'>Nghỉ ốm</option>
               <option value='schoolActivity'>Hoạt động trường</option>
             </select>
-          </div>
+          </div> */}
         </div>
       </Card>
 
@@ -274,9 +274,9 @@ export default function MentorLeaveRequestsPage() {
                     <th className='text-left px-6 py-4 font-bold text-foreground'>
                       Lab
                     </th>
-                    <th className='text-left px-6 py-4 font-bold text-foreground'>
+                    {/* <th className='text-left px-6 py-4 font-bold text-foreground'>
                       Loại nghỉ
-                    </th>
+                    </th> */}
                     <th className='text-left px-6 py-4 font-bold text-foreground'>
                       Từ ngày
                     </th>
@@ -314,9 +314,9 @@ export default function MentorLeaveRequestsPage() {
                         {r?.lab?.name || '—'}
                       </td>
 
-                      <td className='px-6 py-4 text-muted-foreground'>
+                      {/* <td className='px-6 py-4 text-muted-foreground'>
                         {leaveTypeLabel(r.leaveType)}
-                      </td>
+                      </td> */}
 
                       <td className='px-6 py-4 text-muted-foreground'>
                         {fmtDate(r.startDate)}

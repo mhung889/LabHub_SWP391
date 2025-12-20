@@ -32,11 +32,17 @@ exports.createLeaveRequest = async (req, res) => {
 
     const studentId = studentByUser._id;
 
-    if (!leaveType || !startDate || !endDate) {
+    if (!startDate || !endDate) {
       return res.status(400).json({
         message: 'Thiếu thông tin bắt buộc',
       });
     }
+
+    // if (!leaveType || !startDate || !endDate) {
+    //   return res.status(400).json({
+    //     message: 'Thiếu thông tin bắt buộc',
+    //   });
+    // }
 
     if (!studentByUser.lab) {
       return res.status(403).json({
@@ -86,27 +92,28 @@ exports.createLeaveRequest = async (req, res) => {
     const totalDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
 
     // xin nghỉ trước  x giờ
-    // edit here
-    const NOTICE_HOURS_BY_TYPE = {
-      personal: 0,
-      schoolActivity: 0,
-      sick: 0,
-    };
+    //start validate leaveType
+    // const NOTICE_HOURS_BY_TYPE = {
+    //   personal: 0,
+    //   schoolActivity: 0,
+    //   sick: 0,
+    // };
 
-    const minNoticeHours = NOTICE_HOURS_BY_TYPE[leaveType] ?? 24;
+    // const minNoticeHours = NOTICE_HOURS_BY_TYPE[leaveType] ?? 24;
 
-    const now = new Date();
-    const hoursDiff = (start.getTime() - now.getTime()) / (1000 * 60 * 60);
+    // const now = new Date();
+    // const hoursDiff = (start.getTime() - now.getTime()) / (1000 * 60 * 60);
 
-    if (hoursDiff < minNoticeHours) {
-      return res.status(400).json({
-        message: `Bạn phải xin nghỉ trước ít nhất ${minNoticeHours} giờ`,
-      });
-    }
+    // if (hoursDiff < minNoticeHours) {
+    //   return res.status(400).json({
+    //     message: `Bạn phải xin nghỉ trước ít nhất ${minNoticeHours} giờ`,
+    //   });
+    // }
 
-    // mỗi tháng tối đa 4 ngày (tính theo tháng của startDate)
-    // Nếu đơn kéo qua 2 tháng, cách này sẽ tính hết vào tháng startDate.
-    const MAX_LEAVE_DAYS_PER_MONTH = 4;
+    //end validate leaveType
+
+    // mỗi tháng tối đa 3 ngày (tính theo tháng của startDate)
+    const MAX_LEAVE_DAYS_PER_MONTH = 3;
 
     const monthStart = new Date(
       start.getFullYear(),
@@ -165,7 +172,7 @@ exports.createLeaveRequest = async (req, res) => {
     const leaveRequest = await LeaveRequestModel.create({
       student: studentId,
       lab,
-      leaveType,
+      // leaveType,
       startDate: start,
       endDate: end,
       totalDays,

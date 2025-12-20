@@ -533,7 +533,7 @@ export default function AdminMentorsPage() {
                   <p className="text-sm text-red-500 mt-1">{formErrors.address}</p>
                 )}
               </div>
-              <div className="sm:col-span-2">
+              {/* <div className="sm:col-span-2">
                 <label className="block text-sm font-medium text-foreground mb-2">
                   Gán Lab
                 </label>
@@ -554,7 +554,7 @@ export default function AdminMentorsPage() {
                 <p className="text-xs text-muted-foreground mt-1">
                   Mỗi mentor chỉ có thể được gán cho 1 lab
                 </p>
-              </div>
+              </div> */}
               <div className="sm:col-span-2">
                 <label className="block text-sm font-medium text-foreground mb-2">
                   Ảnh Đại Diện

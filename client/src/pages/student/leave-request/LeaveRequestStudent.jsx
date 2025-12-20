@@ -241,7 +241,7 @@ export default function LeaveRequestStudent() {
                     <option value='cancelled'>Cancelled</option>
                   </Form.Select>
                 </Col>
-                <Col lg={3}>
+                {/* <Col lg={3}>
                   <Form.Select
                     value={leaveType}
                     onChange={(e) => setLeaveType(e.target.value)}
@@ -251,7 +251,7 @@ export default function LeaveRequestStudent() {
                     <option value='sick'>Nghỉ ốm</option>
                     <option value='schoolActivity'>Hoạt động trường</option>
                   </Form.Select>
-                </Col>
+                </Col> */}
               </Row>
             </Card.Body>
           </Card>
@@ -263,7 +263,7 @@ export default function LeaveRequestStudent() {
                 <thead>
                   <tr>
                     <th>Lab</th>
-                    <th>Leave Type</th>
+                    {/* <th>Leave Type</th> */}
                     <th>Start</th>
                     <th>End</th>
                     <th>Days</th>
@@ -289,7 +289,7 @@ export default function LeaveRequestStudent() {
                     filtered.map((r) => (
                       <tr key={r._id}>
                         <td>{r?.lab?.name || '-'}</td>
-                        <td>{leaveTypeLabel(r.leaveType)}</td>
+                        {/* <td>{leaveTypeLabel(r.leaveType)}</td> */}
                         <td>
                           {new Date(r.startDate).toLocaleDateString('vi-VN')}
                         </td>

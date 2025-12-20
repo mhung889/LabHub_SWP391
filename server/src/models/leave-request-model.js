@@ -17,7 +17,7 @@ const leaveRequestSchema = new Schema(
     leaveType: {
       type: String,
       enum: ['sick', 'personal', 'schoolActivity', ],
-      required: true,
+     // required: true,
     },
     startDate: {
       type: Date,

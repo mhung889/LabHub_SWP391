@@ -74,7 +74,7 @@ cron.schedule("1 0 * * *", async () => {
  * ===================================================== */
 cron.schedule("0 * * * *", async () => {
   try {
-    console.log("⏰ [CRON] Finalize attendance status");
+    console.log("[CRON] Finalize attendance status");
     // cron.schedule("*/1 * * * *", async () => {
     //   try {
     //     console.log("🧪 [TEST] Init attendance status"); 
@@ -146,8 +146,8 @@ cron.schedule("0 * * * *", async () => {
       }
     }
   } catch (err) {
-    console.error("❌ [CRON] Finalize attendance error:", err);
+    console.error("[CRON] Finalize attendance error:", err);
   }
 });
 
-console.log("✅ Attendance cron initialized");
+console.log("Attendance cron initialized");
