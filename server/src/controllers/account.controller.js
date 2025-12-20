@@ -342,6 +342,9 @@ module.exports = {
         status: user.status || null,
         phoneNumber: user.phoneNumber || null,
         image: user.image || null,
+        dateOfBirth: user.dateOfBirth || null,
+        gender: user.gender || null,
+        address: user.address || null,
         createdAt: user.createdAt || null,
         updatedAt: user.updatedAt || null,
       };
@@ -383,7 +386,9 @@ module.exports = {
               }
             }
 
-            // Format student data
+            // Format student data - lấy các trường từ User model
+            const userForStudent = await UserModel.findById(userId).lean();
+            
             studentProfile = {
               _id: studentProfile._id.toString(),
               user: studentProfile.user ? studentProfile.user.toString() : null,
@@ -395,6 +400,13 @@ module.exports = {
                 name: studentProfile.lab.name,
                 code: studentProfile.lab.code
               } : studentProfile.lab.toString()) : null,
+              // Lấy các trường từ User model
+              address: userForStudent.address || null,
+              dateOfBirth: userForStudent.dateOfBirth || null,
+              gender: userForStudent.gender || null,
+              phoneNumber: userForStudent.phoneNumber || null,
+              // className từ Student model
+              className: studentProfile.className || null,
               createdAt: studentProfile.createdAt || null,
               updatedAt: studentProfile.updatedAt || null,
             };
@@ -437,6 +449,16 @@ module.exports = {
           : updateData.phoneNumber;
         userUpdateFields.phoneNumber = phoneValue || null;
       }
+      // Cập nhật các trường chung cho user (dateOfBirth, gender, address)
+      if (updateData.dateOfBirth !== undefined) {
+        userUpdateFields.dateOfBirth = updateData.dateOfBirth || null;
+      }
+      if (updateData.gender !== undefined) {
+        userUpdateFields.gender = updateData.gender || null;
+      }
+      if (updateData.address !== undefined) {
+        userUpdateFields.address = updateData.address?.trim() || null;
+      }
 
       if (Object.keys(userUpdateFields).length > 0) {
         await UserModel.findByIdAndUpdate(userId, userUpdateFields, { new: true, runValidators: true });
@@ -451,17 +473,9 @@ module.exports = {
 
           if (student) {
             const studentUpdateFields = {};
-            if (updateData.address !== undefined) {
-              studentUpdateFields.address = updateData.address?.trim() || null;
-            }
+            // Chỉ className thuộc về Student model
             if (updateData.className !== undefined) {
               studentUpdateFields.className = updateData.className?.trim() || null;
-            }
-            if (updateData.dateOfBirth !== undefined) {
-              studentUpdateFields.dateOfBirth = updateData.dateOfBirth || null;
-            }
-            if (updateData.gender !== undefined) {
-              studentUpdateFields.gender = updateData.gender || null;
             }
 
             if (Object.keys(studentUpdateFields).length > 0) {
@@ -498,6 +512,9 @@ module.exports = {
               }
             }
 
+            // Lấy lại user data để lấy các trường dateOfBirth, gender, address từ User model
+            const updatedUserForStudent = await UserModel.findById(userId).lean();
+            
             studentProfile = {
               _id: studentProfile._id.toString(),
               user: studentProfile.user ? studentProfile.user.toString() : null,
@@ -509,6 +526,13 @@ module.exports = {
                 name: studentProfile.lab.name,
                 code: studentProfile.lab.code
               } : studentProfile.lab.toString()) : null,
+              // Lấy các trường từ User model
+              address: updatedUserForStudent.address || null,
+              dateOfBirth: updatedUserForStudent.dateOfBirth || null,
+              gender: updatedUserForStudent.gender || null,
+              phoneNumber: updatedUserForStudent.phoneNumber || null,
+              // className từ Student model
+              className: studentProfile.className || null,
               createdAt: studentProfile.createdAt || null,
               updatedAt: studentProfile.updatedAt || null,
             };
@@ -530,6 +554,9 @@ module.exports = {
         status: updatedUser.status || null,
         phoneNumber: updatedUser.phoneNumber || null,
         image: updatedUser.image || null,
+        dateOfBirth: updatedUser.dateOfBirth || null,
+        gender: updatedUser.gender || null,
+        address: updatedUser.address || null,
         createdAt: updatedUser.createdAt || null,
         updatedAt: updatedUser.updatedAt || null,
       };

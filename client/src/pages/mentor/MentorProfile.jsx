@@ -181,9 +181,38 @@ const MentorProfile = () => {
 
       const response = await authApi.updateProfile(updateData);
 
-      if (response.user) {
-        setUser(response.user);
-        localStorage.setItem("user", JSON.stringify(response.user));
+      // Refresh profile data after successful update
+      try {
+        const refreshedProfile = await authApi.getProfile();
+        if (refreshedProfile.user) {
+          setUser(refreshedProfile.user);
+          localStorage.setItem("user", JSON.stringify(refreshedProfile.user));
+          setFormData({
+            fullName: refreshedProfile.user.fullName || "",
+            phoneNumber: refreshedProfile.user.phoneNumber || "",
+            address: refreshedProfile.user.address || "",
+            dateOfBirth: refreshedProfile.user.dateOfBirth
+              ? new Date(refreshedProfile.user.dateOfBirth).toISOString().split("T")[0]
+              : "",
+            gender: refreshedProfile.user.gender || "",
+          });
+        }
+      } catch (refreshError) {
+        console.error("Error refreshing profile:", refreshError);
+        // Fallback to response data if refresh fails
+        if (response.user) {
+          setUser(response.user);
+          localStorage.setItem("user", JSON.stringify(response.user));
+          setFormData({
+            fullName: response.user.fullName || "",
+            phoneNumber: response.user.phoneNumber || "",
+            address: response.user.address || "",
+            dateOfBirth: response.user.dateOfBirth
+              ? new Date(response.user.dateOfBirth).toISOString().split("T")[0]
+              : "",
+            gender: response.user.gender || "",
+          });
+        }
       }
 
       toast.success(response.message || "Cập nhật thông tin thành công");

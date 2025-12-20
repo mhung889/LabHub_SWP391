@@ -39,7 +39,6 @@ const StudentProfile = () => {
     fullName: "",
     phoneNumber: "",
     address: "",
-    className: "",
     dateOfBirth: "",
     gender: "",
   });
@@ -69,7 +68,6 @@ const StudentProfile = () => {
             fullName: response.user.fullName || "",
             phoneNumber: response.user.phoneNumber || response.student?.phoneNumber || "",
             address: response.student?.address || "",
-            className: response.student?.className || "",
             dateOfBirth: response.student?.dateOfBirth
               ? new Date(response.student.dateOfBirth)
                   .toISOString()
@@ -111,7 +109,6 @@ const StudentProfile = () => {
         fullName: user.fullName || "",
         phoneNumber: user.phoneNumber || student.phoneNumber || "",
         address: student.address || "",
-        className: student.className || "",
         dateOfBirth: student.dateOfBirth
           ? new Date(student.dateOfBirth).toISOString().split("T")[0]
           : "",
@@ -169,9 +166,6 @@ const StudentProfile = () => {
       if (formData.address !== undefined) {
         updateData.address = formData.address.trim() || null;
       }
-      if (formData.className !== undefined) {
-        updateData.className = formData.className.trim() || null;
-      }
       if (formData.dateOfBirth && formData.dateOfBirth.trim()) {
         updateData.dateOfBirth = formData.dateOfBirth;
       }
@@ -184,23 +178,46 @@ const StudentProfile = () => {
       const response = await authApi.updateProfile(updateData);
       console.log("Update response:", response);
 
-      if (response.user) {
-        setUser(response.user);
-        localStorage.setItem("user", JSON.stringify(response.user));
-      }
-      if (response.student) {
-        setStudent(response.student);
-        setFormData({
-          fullName: response.user?.fullName || "",
-          phoneNumber:
-            response.user?.phoneNumber || response.student?.phoneNumber || "",
-          address: response.student?.address || "",
-          className: response.student?.className || "",
-          dateOfBirth: response.student?.dateOfBirth
-            ? new Date(response.student.dateOfBirth).toISOString().split("T")[0]
-            : "",
-          gender: response.student?.gender || "",
-        });
+      // Refresh profile data after successful update
+      try {
+        const refreshedProfile = await authApi.getProfile();
+        if (refreshedProfile.user) {
+          setUser(refreshedProfile.user);
+          localStorage.setItem("user", JSON.stringify(refreshedProfile.user));
+        }
+        if (refreshedProfile.student) {
+          setStudent(refreshedProfile.student);
+          setFormData({
+            fullName: refreshedProfile.user?.fullName || "",
+            phoneNumber:
+              refreshedProfile.user?.phoneNumber || refreshedProfile.student?.phoneNumber || "",
+            address: refreshedProfile.student?.address || "",
+            dateOfBirth: refreshedProfile.student?.dateOfBirth
+              ? new Date(refreshedProfile.student.dateOfBirth).toISOString().split("T")[0]
+              : "",
+            gender: refreshedProfile.student?.gender || "",
+          });
+        }
+      } catch (refreshError) {
+        console.error("Error refreshing profile:", refreshError);
+        // Fallback to response data if refresh fails
+        if (response.user) {
+          setUser(response.user);
+          localStorage.setItem("user", JSON.stringify(response.user));
+        }
+        if (response.student) {
+          setStudent(response.student);
+          setFormData({
+            fullName: response.user?.fullName || "",
+            phoneNumber:
+              response.user?.phoneNumber || response.student?.phoneNumber || "",
+            address: response.student?.address || "",
+            dateOfBirth: response.student?.dateOfBirth
+              ? new Date(response.student.dateOfBirth).toISOString().split("T")[0]
+              : "",
+            gender: response.student?.gender || "",
+          });
+        }
       }
 
       toast.success(response.message || "Cập nhật thông tin thành công");
@@ -626,6 +643,22 @@ const StudentProfile = () => {
                                 </Form.Text>
                               </Form.Group>
                             </Col>
+                            <Col md={12}>
+                              <Form.Group>
+                                <Form.Label className="info-label">
+                                  Địa chỉ
+                                </Form.Label>
+                                <Form.Control
+                                  as="textarea"
+                                  rows={3}
+                                  name="address"
+                                  value={formData.address}
+                                  onChange={handleInputChange}
+                                  placeholder="Nhập địa chỉ"
+                                  className="custom-input"
+                                />
+                              </Form.Group>
+                            </Col>
                             <Col md={12}></Col>
                             <Col md={12}>
                               <div className="d-flex gap-2 justify-content-end mt-3">
@@ -711,6 +744,38 @@ const StudentProfile = () => {
                                     {student.major.description}
                                   </small>
                                 )}
+                            </div>
+                          </Col>
+                          <Col md={6}>
+                            <div className="info-item">
+                              <label className="info-label">Ngày sinh</label>
+                              <p className="info-value">
+                                {student?.dateOfBirth
+                                  ? formatDate(student.dateOfBirth)
+                                  : "Chưa cập nhật"}
+                              </p>
+                            </div>
+                          </Col>
+                          <Col md={6}>
+                            <div className="info-item">
+                              <label className="info-label">Giới tính</label>
+                              <p className="info-value">
+                                {student?.gender === "male"
+                                  ? "Nam"
+                                  : student?.gender === "female"
+                                  ? "Nữ"
+                                  : student?.gender === "other"
+                                  ? "Khác"
+                                  : "Chưa cập nhật"}
+                              </p>
+                            </div>
+                          </Col>
+                          <Col md={6}>
+                            <div className="info-item">
+                              <label className="info-label">Địa chỉ</label>
+                              <p className="info-value">
+                                {student?.address || "Chưa cập nhật"}
+                              </p>
                             </div>
                           </Col>
                           <Col md={6}>
