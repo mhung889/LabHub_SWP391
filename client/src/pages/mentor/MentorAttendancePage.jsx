@@ -12,7 +12,6 @@ export default function MentorAttendancePage() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  // 1. Thêm state cho bộ lọc ngày
   const [dateFilter, setDateFilter] = useState(""); 
 
   useEffect(() => {
@@ -158,7 +157,6 @@ export default function MentorAttendancePage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <CalendarCheck className="w-6 h-6 text-primary" />
         <div>
           <h1 className="text-2xl font-bold">Lịch sử điểm danh</h1>
           <p className="text-muted-foreground text-sm">

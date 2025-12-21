@@ -79,6 +79,12 @@ export default function MentorEvaluationPage() {
       return toast.warning("Vui lòng điền đủ thông tin");
     }
 
+    const isConfirmed = window.confirm(
+      "Đánh giá sẽ không thể chỉnh sửa, bạn có chắc chắn muốn lưu?"
+    );
+  
+    if (!isConfirmed) return; 
+
     setSubmitting(true);
     try {
       await evaluationApi.submitEvaluation({
@@ -139,7 +145,7 @@ export default function MentorEvaluationPage() {
         <div className="card-body d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
           <div>
             <h4 className="card-title mb-1 d-flex align-items-center gap-2 fw-bold text-primary">
-              <UserCheck /> Quản lý Đánh giá Intern
+             Quản lý Đánh giá Intern
             </h4>
             <p className="text-muted mb-0 small">
               Đánh giá năng lực và chuyên cần của sinh viên thực tập
@@ -198,7 +204,7 @@ export default function MentorEvaluationPage() {
                     >
                       {student.isEvaluated ? (
                         <>
-                          <Eye size={14} className="me-1" /> Xem lại
+                          <Eye size={14} className="me-1" /> 
                         </>
                       ) : (
                         "Đánh giá ngay"
