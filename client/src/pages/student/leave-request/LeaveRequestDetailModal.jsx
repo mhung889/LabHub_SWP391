@@ -1,71 +1,4 @@
-// import React from "react";
-// import { Modal, Badge } from "react-bootstrap";
 
-// const statusBadge = (s) => {
-//   switch (s) {
-//     case "pending":
-//       return <Badge bg="warning" text="dark">Pending</Badge>;
-//     case "approved":
-//       return <Badge bg="success">Approved</Badge>;
-//     case "rejected":
-//       return <Badge bg="danger">Rejected</Badge>;
-//     case "cancelled":
-//       return <Badge bg="secondary">Cancelled</Badge>;
-//     default:
-//       return <Badge bg="light" text="dark">{s}</Badge>;
-//   }
-// };
-
-// const leaveTypeLabel = (t) => {
-//   switch (t) {
-//     case "personal":
-//       return "Nghỉ cá nhân";
-//     case "sick":
-//       return "Nghỉ ốm";
-//     case "schoolActivity":
-//       return "Hoạt động trường";
-//     default:
-//       return t;
-//   }
-// };
-
-// export default function LeaveRequestDetailModal({ show, onClose, data }) {
-//   if (!data) return null;
-
-//   return (
-//     <Modal show={show} onHide={onClose} centered>
-//       <Modal.Header closeButton>
-//         <Modal.Title>Chi tiết đơn xin nghỉ</Modal.Title>
-//       </Modal.Header>
-
-//       <Modal.Body className="small">
-//         <p><strong>Lab:</strong> {data?.lab?.name || "-"}</p>
-//         <p><strong>Loại nghỉ:</strong> {leaveTypeLabel(data.leaveType)}</p>
-//         <p><strong>Thời gian:</strong>
-//           {" "}
-//           {new Date(data.startDate).toLocaleDateString("vi-VN")}
-//           {" "}→{" "}
-//           {new Date(data.endDate).toLocaleDateString("vi-VN")}
-//         </p>
-//         <p><strong>Số ngày:</strong> {data.totalDays}</p>
-//         <p><strong>Trạng thái:</strong> {statusBadge(data.status)}</p>
-//         <p><strong>Lý do:</strong></p>
-//         <div className="border rounded p-2 bg-light">
-//           {data.reason}
-//         </div>
-
-//         {data.note && (
-//           <>
-//             <p className="mt-3"><strong>Ghi chú Mentor:</strong></p>
-//             <div className="border rounded p-2 bg-light">
-//               {data.note}
-//             </div>
-//           </>
-//         )}
-//       </Modal.Body>
-//     </Modal>
-//   );
-// }
 
 import React from 'react';
 import { Modal, Badge } from 'react-bootstrap';
@@ -159,9 +92,9 @@ export default function LeaveRequestDetailModal({
           </p>
         )}
 
-        <p className='mb-2'>
+        {/* <p className='mb-2'>
           <strong>Loại nghỉ:</strong> {leaveTypeLabel(data?.leaveType)}
-        </p>
+        </p> */}
 
         <p className='mb-2'>
           <strong>Thời gian:</strong> {fmtDate(data?.startDate)} →{' '}
