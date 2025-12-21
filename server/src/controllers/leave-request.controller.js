@@ -247,7 +247,7 @@ exports.cancelLeaveRequest = async (req, res) => {
 //GET
 exports.getAllLeaveRequests = async (req, res) => {
   try {
-    const mentorId = req.user;
+    const mentorId = req.user?._id;
     if (!mentorId) {
       return res.status(401).json({ message: 'Unauthorized' });
     }
