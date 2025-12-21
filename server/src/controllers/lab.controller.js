@@ -219,15 +219,15 @@ exports.addStudentToLabById = async (req, res) => {
       return res.status(404).json({ message: 'Student không tồn tại' });
     }
 
-    if (
-      lab.major &&
-      student.major &&
-      lab.major.toString() !== student.major.toString()
-    ) {
-      return res.status(400).json({
-        message: 'Major student không khớp với major lab',
-      });
-    }
+    // if (
+    //   lab.major &&
+    //   student.major &&
+    //   lab.major.toString() !== student.major.toString()
+    // ) {
+    //   return res.status(400).json({
+    //     message: 'Major student không khớp với major lab',
+    //   });
+    // }
 
     const count = await StudentModel.countDocuments({ lab: id });
     if (count >= lab.total) {
@@ -265,12 +265,14 @@ exports.getStudentsByLabId = async (req, res) => {
     const students = await StudentModel.find({ lab: id })
       .populate('user', '')
       .populate('major', 'name code -_id')
-      .populate('lab', '');
+      .populate('lab', '')
+      .sort({ updatedAt: -1, studentCode: 1 });
 
     const availableFilter = { lab: null };
     const availableStudents = await StudentModel.find(availableFilter)
       .populate('user', '')
-      .populate('major', 'name code -_id');
+      .populate('major', 'name code -_id')
+      .sort({ updatedAt: -1 });
 
     return res.status(200).json({
       students,
@@ -419,7 +421,7 @@ exports.updateAttendanceRule = async (req, res) => {
     const lab = await LabModel.findById(id);
     if (!lab) {
       return res.status(404).json({
-        message: "Lab không tồn tại",
+        message: 'Lab không tồn tại',
       });
     }
 
@@ -431,15 +433,15 @@ exports.updateAttendanceRule = async (req, res) => {
       checkOutLateMinutes,
     ];
 
-    if (values.some(v => v === undefined)) {
+    if (values.some((v) => v === undefined)) {
       return res.status(400).json({
-        message: "Thiếu thông tin cấu hình thời gian điểm danh",
+        message: 'Thiếu thông tin cấu hình thời gian điểm danh',
       });
     }
 
-    if (values.some(v => typeof v !== "number" || v < 0)) {
+    if (values.some((v) => typeof v !== 'number' || v < 0)) {
       return res.status(400).json({
-        message: "Thời gian cấu hình phải là số >= 0",
+        message: 'Thời gian cấu hình phải là số >= 0',
       });
     }
 
@@ -454,14 +456,13 @@ exports.updateAttendanceRule = async (req, res) => {
     await lab.save();
 
     return res.status(200).json({
-      message: "Cập nhật cấu hình điểm danh thành công",
+      message: 'Cập nhật cấu hình điểm danh thành công',
       attendanceRule: lab.attendanceRule,
     });
   } catch (error) {
-    console.error("Update attendance rule error:", error);
+    console.error('Update attendance rule error:', error);
     return res.status(500).json({
-      message: "Internal server error",
+      message: 'Internal server error',
     });
   }
 };
-

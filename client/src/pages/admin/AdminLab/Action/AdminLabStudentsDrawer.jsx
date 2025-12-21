@@ -74,11 +74,15 @@ export default function AdminLabStudentsDrawer({ isOpen, onClose, lab }) {
     try {
       setStudentsLoading(true);
 
-      await Promise.all(
-        studentIds.map((id) =>
-          labApi.addStudentToLab(lab._id, { studentId: id })
-        )
-      );
+      // await Promise.all(
+      //   studentIds.map((id) =>
+      //     labApi.addStudentToLab(lab._id, { studentId: id })
+      //   )
+      // );
+
+      for (const id of studentIds) {
+        await labApi.addStudentToLab(lab._id, { studentId: id });
+      }
 
       toast.success(`Thêm ${studentIds.length} sinh viên thành công`);
       setAddModalOpen(false);
