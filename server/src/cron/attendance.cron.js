@@ -27,12 +27,12 @@ function getDateOnly(date = new Date()) {
  * - Chạy lúc 00:00 mỗi ngày
  * - Mỗi student trong lab active có 1 record/ngày
  * ===================================================== */
-// cron.schedule("1 0 * * *", async () => {
-//   try {
-//     console.log("🌅 [CRON] Init attendance records");
-    cron.schedule("*/1 * * * *", async () => {
-      try {
-        console.log("🧪 [TEST] Init attendance records");    
+cron.schedule("1 0 * * *", async () => {
+  try {
+    console.log("🌅 [CRON] Init attendance records");
+    // cron.schedule("*/1 * * * *", async () => {
+    //   try {
+    //     console.log("🧪 [TEST] Init attendance records");    
 
     const dateVN = getVNDateOnly();
 

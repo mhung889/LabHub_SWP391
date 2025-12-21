@@ -1,40 +1,62 @@
 import React, { useEffect, useState } from 'react';
 import evaluationApi from '@/api/evaluationApi';
 import { toast } from 'sonner';
-import { Loader2, ClipboardCheck, AlertCircle, UserCheck, Search, Eye } from "lucide-react";
+import {
+  Loader2,
+  ClipboardCheck,
+  AlertCircle,
+  UserCheck,
+  Search,
+  Eye,
+} from "lucide-react";
+import Pagination from 'react-bootstrap/Pagination';
 
 export default function MentorEvaluationPage() {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [previewData, setPreviewData] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+
   const [searchTerm, setSearchTerm] = useState('');
 
   const [finalScore, setFinalScore] = useState('');
   const [content, setContent] = useState('');
 
-  useEffect(() => { fetchStudents(); }, []);
+  // =====================
+  // PAGINATION STATE
+  // =====================
+  const ITEMS_PER_PAGE = 10;
+  const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    fetchStudents();
+  }, []);
 
   const fetchStudents = async () => {
     setLoading(true);
     try {
       const res = await evaluationApi.getStudentsByLab();
-      setStudents(res.data.data);
+      setStudents(res.data.data || []);
     } catch (error) {
       toast.error("Không thể tải danh sách sinh viên");
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleOpenEvaluation = async (student) => {
     setSelectedStudent(student);
     try {
-      const res = await evaluationApi.getEvaluationPreview(student.labId, student._id);
+      const res = await evaluationApi.getEvaluationPreview(
+        student.labId,
+        student._id
+      );
       const data = res.data.data;
       setPreviewData(data);
-      
-      // Nếu đã đánh giá, điền dữ liệu cũ vào form. Nếu chưa, dùng điểm đề xuất.
+
       if (student.isEvaluated && data.existingEvaluation) {
         setFinalScore(data.existingEvaluation.finalScore);
         setContent(data.existingEvaluation.content);
@@ -42,19 +64,21 @@ export default function MentorEvaluationPage() {
         setFinalScore(data.suggestedScore);
         setContent('');
       }
-      
+
       setIsModalOpen(true);
-    } catch (error) { 
-      toast.error("Lỗi khi tải thông tin đánh giá"); 
+    } catch (error) {
+      toast.error("Lỗi khi tải thông tin đánh giá");
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (selectedStudent.isEvaluated) return; // Chặn submit nếu chỉ xem lại
+    if (selectedStudent.isEvaluated) return;
 
-    if (!finalScore || !content.trim()) return toast.warning("Vui lòng điền đủ thông tin");
-    
+    if (!finalScore || !content.trim()) {
+      return toast.warning("Vui lòng điền đủ thông tin");
+    }
+
     setSubmitting(true);
     try {
       await evaluationApi.submitEvaluation({
@@ -63,29 +87,50 @@ export default function MentorEvaluationPage() {
         finalScore: parseFloat(finalScore),
         content: content.trim(),
         stats: previewData.stats,
-        suggestedScore: previewData.suggestedScore
+        suggestedScore: previewData.suggestedScore,
       });
+
       toast.success("Đã lưu đánh giá thành công");
       setIsModalOpen(false);
       fetchStudents();
-    } catch (error) { 
-      toast.error("Lỗi khi lưu đánh giá"); 
-    } finally { 
-      setSubmitting(false); 
+    } catch (error) {
+      toast.error("Lỗi khi lưu đánh giá");
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const filteredStudents = students.filter(s => 
+  // =====================
+  // FILTER + PAGINATION
+  // =====================
+  const filteredStudents = students.filter((s) =>
     s.user?.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     s.studentCode?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  if (loading) return (
-    <div className="d-flex flex-column align-items-center justify-content-center py-5">
-      <Loader2 className="spinner-border text-primary mb-2" style={{ width: '3rem', height: '3rem' }} />
-      <p className="text-muted">Đang tải danh sách sinh viên...</p>
-    </div>
+  const totalPages = Math.ceil(filteredStudents.length / ITEMS_PER_PAGE);
+
+  const paginatedStudents = filteredStudents.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
   );
+
+  // Reset về trang 1 khi search
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
+  // =====================
+  // LOADING
+  // =====================
+  if (loading) {
+    return (
+      <div className="d-flex flex-column align-items-center justify-content-center py-5">
+        <Loader2 className="spinner-border text-primary mb-2" style={{ width: '3rem', height: '3rem' }} />
+        <p className="text-muted">Đang tải danh sách sinh viên...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="container-fluid py-4">
@@ -96,14 +141,21 @@ export default function MentorEvaluationPage() {
             <h4 className="card-title mb-1 d-flex align-items-center gap-2 fw-bold text-primary">
               <UserCheck /> Quản lý Đánh giá Intern
             </h4>
-            <p className="text-muted mb-0 small">Đánh giá năng lực và chuyên cần của sinh viên thực tập</p>
+            <p className="text-muted mb-0 small">
+              Đánh giá năng lực và chuyên cần của sinh viên thực tập
+            </p>
           </div>
+
           <div className="input-group" style={{ maxWidth: '350px' }}>
-            <span className="input-group-text bg-light border-end-0"><Search size={18} className="text-muted" /></span>
-            <input 
-              type="text" className="form-control bg-light border-start-0 ps-0 shadow-none" 
-              placeholder="Tìm mã SV hoặc tên..." 
-              value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+            <span className="input-group-text bg-light border-end-0">
+              <Search size={18} className="text-muted" />
+            </span>
+            <input
+              type="text"
+              className="form-control bg-light border-start-0 ps-0 shadow-none"
+              placeholder="Tìm mã SV hoặc tên..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
         </div>
@@ -122,29 +174,75 @@ export default function MentorEvaluationPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredStudents.map((student) => (
+              {paginatedStudents.map((student) => (
                 <tr key={student._id}>
-                  <td className="px-4 fw-bold text-dark">{student.studentCode}</td>
-                  <td className="fw-medium">{student.user?.fullName}</td>
+                  <td className="px-4 fw-bold">{student.studentCode}</td>
+                  <td>{student.user?.fullName}</td>
                   <td>
-                    {student.isEvaluated ? 
-                      <span className="badge rounded-pill bg-success-subtle text-success border border-success px-3">Hoàn thành</span> : 
-                      <span className="badge rounded-pill bg-warning-subtle text-warning border border-warning px-3">Chờ đánh giá</span>
-                    }
+                    {student.isEvaluated ? (
+                      <span className="badge rounded-pill bg-success-subtle text-success border border-success px-3">
+                        Hoàn thành
+                      </span>
+                    ) : (
+                      <span className="badge rounded-pill bg-warning-subtle text-warning border border-warning px-3">
+                        Chờ đánh giá
+                      </span>
+                    )}
                   </td>
                   <td className="text-end px-4">
-                    <button 
+                    <button
                       onClick={() => handleOpenEvaluation(student)}
-                      className={`btn btn-sm rounded-pill px-3 shadow-sm ${student.isEvaluated ? 'btn-outline-primary' : 'btn-primary'}`}
+                      className={`btn btn-sm rounded-pill px-3 shadow-sm ${
+                        student.isEvaluated ? 'btn-outline-primary' : 'btn-primary'
+                      }`}
                     >
-                      {student.isEvaluated ? <><Eye size={14} className="me-1"/> Xem lại</> : "Đánh giá ngay"}
+                      {student.isEvaluated ? (
+                        <>
+                          <Eye size={14} className="me-1" /> Xem lại
+                        </>
+                      ) : (
+                        "Đánh giá ngay"
+                      )}
                     </button>
                   </td>
                 </tr>
               ))}
+
+              {paginatedStudents.length === 0 && (
+                <tr>
+                  <td colSpan="4" className="text-center py-4 text-muted">
+                    Không có sinh viên phù hợp
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="card-footer bg-white border-0 d-flex justify-content-end">
+            <Pagination className="mb-0">
+              <Pagination.Prev
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage((p) => p - 1)}
+              />
+              {[...Array(totalPages)].map((_, i) => (
+                <Pagination.Item
+                  key={i + 1}
+                  active={currentPage === i + 1}
+                  onClick={() => setCurrentPage(i + 1)}
+                >
+                  {i + 1}
+                </Pagination.Item>
+              ))}
+              <Pagination.Next
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage((p) => p + 1)}
+              />
+            </Pagination>
+          </div>
+        )}
       </div>
 
       {/* Modal Evaluation */}

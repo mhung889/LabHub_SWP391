@@ -21,6 +21,10 @@ export default function AdminStudentsPage() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // PHÂN TRANG STATE
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10); 
+
   const [formData, setFormData] = useState({
     studentCode: "",
     name: "",
@@ -72,23 +76,45 @@ export default function AdminStudentsPage() {
     fetchStudents();
   }, []);
 
-  // FILTER
-  const filteredStudents = students.filter((s) => {
-    const matchSearch =
-      s.user?.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      s.user?.email.toLowerCase().includes(searchTerm.toLowerCase());
+  // FILTER LOGIC
+// FILTER LOGIC
+const filteredStudents = students.filter((s) => {
+  const search = searchTerm.toLowerCase().trim();
+  
+ 
+  const matchSearch =
+    s.user?.fullName?.toLowerCase().includes(search) ||
+    s.user?.email?.toLowerCase().includes(search) ||
+    s.studentCode?.toLowerCase().includes(search); 
 
-    const matchMajor = !filterMajor || s.major?._id === filterMajor;
+  const matchMajor = !filterMajor || s.major?._id === filterMajor;
 
-    const matchLab =
-      !filterLab ||
-      (filterLab === "none" && !s.lab) ||
-      (s.lab && s.lab._id === filterLab);
+  const matchLab =
+    !filterLab ||
+    (filterLab === "none" && !s.lab) ||
+    (s.lab && s.lab._id === filterLab);
 
-    return matchSearch && matchMajor && matchLab;
-  });
+  return matchSearch && matchMajor && matchLab;
+});
 
-  //TOASTS
+  // LOGIC PHÂN TRANG (PAGINATION)
+  // Mỗi khi filter thay đổi, quay về trang 1
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterMajor, filterLab]);
+
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredStudents.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredStudents.length / itemsPerPage);
+
+  const paginate = (pageNumber) => {
+    if (pageNumber >= 1 && pageNumber <= totalPages) {
+      setCurrentPage(pageNumber);
+    }
+  };
+
+  // TOASTS
   const showSuccessToast = (msg) => {
     toast.success(msg, { icon: null });
   };
@@ -105,7 +131,7 @@ export default function AdminStudentsPage() {
 
   const closeModal = () => {
     const modal = window.bootstrap.Modal.getInstance(modalRef.current);
-    modal.hide();
+    if (modal) modal.hide();
   };
 
   const openDetailModal = () => {
@@ -115,7 +141,7 @@ export default function AdminStudentsPage() {
 
   const closeDetailModal = () => {
     const modal = window.bootstrap.Modal.getInstance(detailModalRef.current);
-    modal.hide();
+    if (modal) modal.hide();
   };
 
   // VALIDATION
@@ -130,7 +156,6 @@ export default function AdminStudentsPage() {
     if (!/^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/.test(formData.email))
       newErrors.email = "Email không đúng định dạng";
 
-    // validate phone: optional but if filled must be 10-11 digits
     if (!formData.phone || !formData.phone.trim()) {
       newErrors.phone = "Số điện thoại không được để trống";
     } else {
@@ -170,9 +195,7 @@ export default function AdminStudentsPage() {
     }
 
     if (!formData.address.trim()) newErrors.address = "Hãy nhập địa chỉ";
-
     if (!formData.major) newErrors.major = "Hãy chọn chuyên ngành";
-
     if (!formData.startDate) newErrors.startDate = "Hãy chọn ngày bắt đầu";
 
     if (formData.emergencyPhone && formData.emergencyPhone.trim()) {
@@ -183,8 +206,7 @@ export default function AdminStudentsPage() {
       if (!phoneRegex.test(cleanEmergency)) {
         newErrors.emergencyPhone = "Số khẩn cấp không hợp lệ (10-11 chữ số)";
       } else if (cleanEmergency.length > 20) {
-        newErrors.emergencyPhone =
-          "Số khẩn cấp không được vượt quá 20 ký tự";
+        newErrors.emergencyPhone = "Số khẩn cấp không được vượt quá 20 ký tự";
       }
     }
 
@@ -274,11 +296,9 @@ export default function AdminStudentsPage() {
     
     } catch (err) {
       showErrorToast(err.response?.data?.message || "Có lỗi xảy ra");
-    
     } finally {
       setIsSubmitting(false); 
     }
-    
   };
 
   // DELETE STUDENT
@@ -368,7 +388,7 @@ export default function AdminStudentsPage() {
           </thead>
 
           <tbody>
-            {filteredStudents.map((s) => (
+            {currentItems.map((s) => (
               <tr
                 key={s._id}
                 onClick={() => {
@@ -422,6 +442,36 @@ export default function AdminStudentsPage() {
         )}
       </div>
 
+      {/* PAGINATION */}
+      {filteredStudents.length > itemsPerPage && (
+        <nav className="d-flex justify-content-center mt-3">
+          <ul className="pagination">
+            <li className={`page-item ${currentPage === 1 ? "disabled" : ""}`}>
+              <button className="page-link" onClick={() => paginate(currentPage - 1)}>
+                Trước
+              </button>
+            </li>
+            
+            {[...Array(totalPages)].map((_, index) => (
+              <li
+                key={index + 1}
+                className={`page-item ${currentPage === index + 1 ? "active" : ""}`}
+              >
+                <button className="page-link" onClick={() => paginate(index + 1)}>
+                  {index + 1}
+                </button>
+              </li>
+            ))}
+
+            <li className={`page-item ${currentPage === totalPages ? "disabled" : ""}`}>
+              <button className="page-link" onClick={() => paginate(currentPage + 1)}>
+                Sau
+              </button>
+            </li>
+          </ul>
+        </nav>
+      )}
+
       {/* MODAL ADD / EDIT */}
       <div className="modal fade" ref={modalRef} tabIndex="-1">
         <div className="modal-dialog modal-lg">
@@ -441,7 +491,6 @@ export default function AdminStudentsPage() {
             <div className="modal-body">
               <div className="row g-3">
 
-                {/* STUDENT CODE */}
                 <div className="col-md-6">
                   <label className="form-label">Mã sinh viên</label>
                   <input
@@ -454,7 +503,6 @@ export default function AdminStudentsPage() {
                   <div className="invalid-feedback">{errors.studentCode}</div>
                 </div>
 
-                {/* NAME */}
                 <div className="col-md-6">
                   <label className="form-label">Họ tên</label>
                   <input
@@ -467,7 +515,6 @@ export default function AdminStudentsPage() {
                   <div className="invalid-feedback">{errors.name}</div>
                 </div>
 
-                {/* EMAIL */}
                 <div className="col-md-6">
                   <label className="form-label">Email</label>
                   <input
@@ -480,7 +527,6 @@ export default function AdminStudentsPage() {
                   <div className="invalid-feedback">{errors.email}</div>
                 </div>
 
-                {/* PHONE */}
                 <div className="col-md-6">
                   <label className="form-label">SĐT</label>
                   <input
@@ -493,7 +539,6 @@ export default function AdminStudentsPage() {
                   <div className="invalid-feedback">{errors.phone}</div>
                 </div>
 
-                {/* GENDER */}
                 <div className="col-md-6">
                   <label className="form-label">Giới tính</label>
                   <select
@@ -511,7 +556,6 @@ export default function AdminStudentsPage() {
                   <div className="invalid-feedback">{errors.gender}</div>
                 </div>
 
-                {/* DOB */}
                 <div className="col-md-6">
                   <label className="form-label">Ngày sinh</label>
                   <input
@@ -525,7 +569,6 @@ export default function AdminStudentsPage() {
                   <div className="invalid-feedback">{errors.dob}</div>
                 </div>
 
-                {/* ADDRESS */}
                 <div className="col-md-6">
                   <label className="form-label">Địa chỉ</label>
                   <input
@@ -538,7 +581,6 @@ export default function AdminStudentsPage() {
                   <div className="invalid-feedback">{errors.address}</div>
                 </div>
 
-                {/* EMERGENCY CONTACT */}
                 <h6 className="fw-bold mt-3">Liên hệ khẩn cấp</h6>
 
                 <div className="col-md-4">
@@ -575,7 +617,6 @@ export default function AdminStudentsPage() {
                   <div className="invalid-feedback">{errors.emergencyPhone}</div>
                 </div>
 
-                {/* MAJOR */}
                 <div className="col-md-6">
                   <label className="form-label">Chuyên ngành</label>
                   <select
@@ -595,7 +636,6 @@ export default function AdminStudentsPage() {
                   <div className="invalid-feedback">{errors.major}</div>
                 </div>
 
-                {/* START DATE */}
                 <div className="col-md-6">
                   <label className="form-label">Ngày bắt đầu</label>
                   <input
@@ -641,7 +681,7 @@ export default function AdminStudentsPage() {
 
                   <div className="col-12 text-center mb-3">
                     <img
-                      src={selectedStudent.user?.image}
+                      src={selectedStudent.user?.image || "https://via.placeholder.com/120"}
                       alt="avatar"
                       style={{
                         width: "120px",
