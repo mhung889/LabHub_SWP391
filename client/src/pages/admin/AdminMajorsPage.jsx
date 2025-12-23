@@ -1,171 +1,269 @@
+// Import React hooks để quản lý state và lifecycle
 import { useState, useEffect } from "react";
+// Import các component UI từ shadcn/ui
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+// Import các icon từ lucide-react
 import { Plus, Edit2, Trash2, Search, X, Users, Building2 } from "lucide-react";
+// Import API client để gọi các API liên quan đến major
 import majorApi from "@/api/majorApi";
 
+/**
+ * Component quản lý chuyên ngành (major) của Admin
+ * Cho phép Admin xem, tạo, sửa, xóa chuyên ngành
+ */
 export default function AdminMajorsPage() {
+  // State lưu danh sách chuyên ngành
   const [majors, setMajors] = useState([]);
+  // State quản lý trạng thái loading
   const [loading, setLoading] = useState(false);
+  // State lưu từ khóa tìm kiếm
   const [searchTerm, setSearchTerm] = useState("");
+  // State quản lý việc hiển thị form tạo/sửa chuyên ngành
   const [showForm, setShowForm] = useState(false);
+  // State lưu chuyên ngành đang được chỉnh sửa (null nếu đang tạo mới)
   const [editingMajor, setEditingMajor] = useState(null);
+  // State lưu chuyên ngành được chọn để xem chi tiết
   const [selectedMajor, setSelectedMajor] = useState(null);
+  // State quản lý việc hiển thị modal chi tiết chuyên ngành
   const [showDetail, setShowDetail] = useState(false);
+  // State quản lý phân trang
   const [pagination, setPagination] = useState({
-    page: 1,
-    limit: 20,
-    total: 0,
-    totalPages: 0,
+    page: 1,        // Trang hiện tại
+    limit: 20,      // Số lượng mỗi trang
+    total: 0,       // Tổng số chuyên ngành
+    totalPages: 0,  // Tổng số trang
   });
+  // State lưu dữ liệu form tạo/sửa chuyên ngành
   const [formData, setFormData] = useState({
-    name: "",
-    code: "",
-    description: "",
+    name: "",         // Tên chuyên ngành
+    code: "",         // Mã chuyên ngành
+    description: "", // Mô tả chuyên ngành
   });
+  // State lưu các lỗi validation của form
   const [formErrors, setFormErrors] = useState({});
 
+  // useEffect chạy khi component mount hoặc khi pagination.page hoặc searchTerm thay đổi
   useEffect(() => {
+    // Load danh sách chuyên ngành
     loadMajors();
-  }, [pagination.page, searchTerm]);
+  }, [pagination.page, searchTerm]);  // Chạy lại khi pagination.page hoặc searchTerm thay đổi
 
+  /**
+   * Hàm load danh sách chuyên ngành từ API với phân trang và tìm kiếm
+   */
   const loadMajors = async () => {
     try {
+      // Bật trạng thái loading
       setLoading(true);
+      // Gọi API để lấy danh sách chuyên ngành
       const response = await majorApi.getAll({
-        page: pagination.page,
-        limit: pagination.limit,
-        search: searchTerm || undefined,
+        page: pagination.page,                    // Số trang
+        limit: pagination.limit,                   // Số lượng mỗi trang
+        search: searchTerm || undefined,           // Từ khóa tìm kiếm (undefined nếu rỗng)
       });
+      // Cập nhật danh sách chuyên ngành từ response
       setMajors(response.data.majors || []);
+      // Cập nhật thông tin phân trang nếu có
       if (response.data.pagination) {
         setPagination({
-          ...pagination,
-          ...response.data.pagination,
+          ...pagination,                          // Giữ nguyên các giá trị cũ
+          ...response.data.pagination,            // Cập nhật với dữ liệu mới từ API
         });
       }
     } catch (error) {
+      // Xử lý lỗi: log lỗi và hiển thị thông báo
       console.error("Error loading majors:", error);
       alert(error.response?.data?.message || "Lỗi khi tải danh sách chuyên ngành");
     } finally {
+      // Tắt trạng thái loading dù thành công hay thất bại
       setLoading(false);
     }
   };
 
+  /**
+   * Hàm xử lý khi người dùng click nút tìm kiếm
+   */
   const handleSearch = () => {
+    // Reset về trang 1 khi tìm kiếm
     setPagination({ ...pagination, page: 1 });
+    // Load lại danh sách chuyên ngành
     loadMajors();
   };
 
+  /**
+   * Hàm xử lý khi người dùng nhấn phím trong ô tìm kiếm
+   * @param {Event} e - Event object từ input
+   */
   const handleSearchKeyPress = (e) => {
+    // Nếu nhấn phím Enter, thực hiện tìm kiếm
     if (e.key === "Enter") {
       handleSearch();
     }
   };
 
+  /**
+   * Hàm mở form để tạo chuyên ngành mới
+   */
   const handleAddMajor = () => {
+    // Reset editingMajor về null (đang tạo mới)
     setEditingMajor(null);
+    // Reset form data về giá trị mặc định
     setFormData({
-      name: "",
-      code: "",
-      description: "",
+      name: "",         // Tên rỗng
+      code: "",         // Mã rỗng
+      description: "",  // Mô tả rỗng
     });
+    // Reset lỗi validation
     setFormErrors({});
+    // Hiển thị form
     setShowForm(true);
   };
 
+  /**
+   * Hàm mở form để chỉnh sửa chuyên ngành
+   * @param {Object} major - Object chứa thông tin chuyên ngành cần chỉnh sửa
+   */
   const handleEditMajor = (major) => {
+    // Set chuyên ngành đang được chỉnh sửa
     setEditingMajor(major);
+    // Điền form với dữ liệu của chuyên ngành
     setFormData({
-      name: major.name || "",
-      code: major.code || "",
-      description: major.description || "",
+      name: major.name || "",              // Tên (mặc định: rỗng)
+      code: major.code || "",              // Mã (mặc định: rỗng)
+      description: major.description || "", // Mô tả (mặc định: rỗng)
     });
+    // Reset lỗi validation
     setFormErrors({});
+    // Hiển thị form
     setShowForm(true);
   };
 
+  /**
+   * Hàm xem chi tiết chuyên ngành
+   * @param {Object} major - Object chứa thông tin chuyên ngành cần xem
+   */
   const handleViewDetail = async (major) => {
     try {
+      // Bật trạng thái loading
       setLoading(true);
+      // Gọi API để lấy thông tin chi tiết chuyên ngành
       const response = await majorApi.getById(major._id);
+      // Set chuyên ngành được chọn để hiển thị trong modal
       setSelectedMajor(response.data.major);
+      // Hiển thị modal chi tiết
       setShowDetail(true);
     } catch (error) {
+      // Xử lý lỗi: log lỗi và hiển thị thông báo
       console.error("Error loading major detail:", error);
       alert(error.response?.data?.message || "Lỗi khi tải thông tin chuyên ngành");
     } finally {
+      // Tắt trạng thái loading dù thành công hay thất bại
       setLoading(false);
     }
   };
 
+  /**
+   * Hàm validate form trước khi submit
+   * @returns {boolean} - true nếu form hợp lệ, false nếu có lỗi
+   */
   const validateForm = () => {
+    // Khởi tạo object chứa các lỗi validation
     const errors = {};
 
+    // Validate name: bắt buộc, tối thiểu 2 ký tự
     if (!formData.name.trim()) {
       errors.name = "Tên chuyên ngành là bắt buộc";
     } else if (formData.name.trim().length < 2) {
       errors.name = "Tên chuyên ngành phải có ít nhất 2 ký tự";
     }
 
+    // Validate code: bắt buộc, tối thiểu 2 ký tự, tự động chuyển sang chữ hoa
     if (!formData.code.trim()) {
       errors.code = "Mã chuyên ngành là bắt buộc";
     } else if (formData.code.trim().length < 2) {
       errors.code = "Mã chuyên ngành phải có ít nhất 2 ký tự";
     } else {
-      // Auto uppercase code
+      // Tự động chuyển code sang chữ hoa
       setFormData({ ...formData, code: formData.code.trim().toUpperCase() });
     }
 
+    // Cập nhật state với các lỗi validation
     setFormErrors(errors);
+    // Trả về true nếu không có lỗi, false nếu có lỗi
     return Object.keys(errors).length === 0;
   };
 
+  /**
+   * Hàm xử lý khi submit form tạo/sửa chuyên ngành
+   * @param {Event} e - Event object từ form submit
+   */
   const handleSubmit = async (e) => {
+    // Ngăn chặn hành vi mặc định của form (reload page)
     e.preventDefault();
+    // Validate form trước khi submit, nếu không hợp lệ thì dừng lại
     if (!validateForm()) return;
 
     try {
+      // Bật trạng thái loading
       setLoading(true);
+      // Chuẩn bị dữ liệu submit (trim và uppercase code)
       const submitData = {
-        name: formData.name.trim(),
-        code: formData.code.trim().toUpperCase(),
-        description: formData.description.trim(),
+        name: formData.name.trim(),                        // Tên đã trim
+        code: formData.code.trim().toUpperCase(),         // Mã chuyển sang chữ hoa và trim
+        description: formData.description.trim(),          // Mô tả đã trim
       };
 
+      // Nếu đang chỉnh sửa chuyên ngành, gọi API update
       if (editingMajor) {
         await majorApi.update(editingMajor._id, submitData);
         alert("Cập nhật chuyên ngành thành công");
       } else {
+        // Nếu đang tạo mới, gọi API create
         await majorApi.create(submitData);
         alert("Tạo chuyên ngành thành công");
       }
 
+      // Ẩn form
       setShowForm(false);
+      // Load lại danh sách chuyên ngành
       loadMajors();
     } catch (error) {
+      // Xử lý lỗi: log lỗi và hiển thị thông báo
       console.error("Error saving major:", error);
       alert(error.response?.data?.message || "Lỗi khi lưu chuyên ngành");
     } finally {
+      // Tắt trạng thái loading dù thành công hay thất bại
       setLoading(false);
     }
   };
 
+  /**
+   * Hàm xóa chuyên ngành
+   * @param {Object} major - Object chứa thông tin chuyên ngành cần xóa
+   */
   const handleDeleteMajor = async (major) => {
+    // Xác nhận trước khi xóa
     if (!confirm(`Bạn có chắc muốn xóa chuyên ngành "${major.name}"?`)) {
-      return;
+      return;  // Nếu không xác nhận, dừng lại
     }
 
     try {
+      // Bật trạng thái loading
       setLoading(true);
+      // Gọi API delete để xóa chuyên ngành
       await majorApi.delete(major._id);
+      // Hiển thị thông báo thành công
       alert("Xóa chuyên ngành thành công");
+      // Load lại danh sách chuyên ngành
       loadMajors();
     } catch (error) {
+      // Xử lý lỗi: log lỗi và hiển thị thông báo
       console.error("Error deleting major:", error);
       alert(error.response?.data?.message || "Lỗi khi xóa chuyên ngành");
     } finally {
+      // Tắt trạng thái loading dù thành công hay thất bại
       setLoading(false);
     }
   };
